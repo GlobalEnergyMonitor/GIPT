@@ -1,31 +1,26 @@
 import pandas
 import numpy as np
-import glob
-from flatten_json import flatten_json
-import json
-import pandas
 import numpy
 from numpy import *
-from json import loads, dumps
 import re 
 import pandas as pd
-import os 
-
 '''
-1) text config file (the sentence under the drop down)
-2) tickers
-3) chart #1: OPERATNG
-4) chart #2: CONSTRUCTION
-5) chart #3: DEVELOPMENT
-6) chart #4: FOSSIL / NON-FOSSIL
+Used to make the summary table: https://docs.google.com/spreadsheets/d/1_u4z5OgnCaXjvru-vlhw17q-tmRpqvr1ujaoLlJc9Nc/edit?gid=158050170#gid=158050170
 
+This summary table is not yet public
+
+The processing steps:
+1) Load GIPT
+2) Adjust solar capacity to AC values (as is standard in reporting summarized solar)
+3) Loop technologies and status, applying a helper function that apportions ownership:
+	a) according to the [%] share in the 'Parent' field for combustion trackers and 'Owner' field for non combustion
+	b) gap filling where any entity lacks a % share by equally sharing the remaining share of the total
+	c) filling any blanks in Parent entity with 'unknown'
+4) Makes a few labelling and formatting adjustments to the resulting dataframe
 '''
 
-# ----- SET WORKING DIRECTORY
-os.chdir(os.path.dirname(__file__))
-
-# ----- LOAD THE GIPT
-gipt=pandas.read_excel('/Global Integrated Power April 2025.xlsx',sheet_name='Power facilities')
+# ----- LOAD THE GIPT (TAKES 1-2MINS)
+gipt=pandas.read_excel('./Global Integrated Power April 2025.xlsx',sheet_name='Power facilities')
 
 ## ADJUST 'not found' VALUES IN COMPILED EXCEL
 gipt.loc[gipt['Capacity (MW)']=='not found','Capacity (MW)']=np.nan
@@ -40,10 +35,11 @@ gipt['Retired year']=gipt['Retired year'].astype(float)
 gipt.loc[gipt.Status=='cancelled - inferred 4 y','Status']='cancelled'
 gipt.loc[gipt.Status=='shelved - inferred 2 y','Status']='shelved'
 
-# ----- CONVERT SOLAR ALL TO MWac FOR SUMMARY TABLES FOLLOWING: https://github.com/GlobalEnergyMonitor/Renewables_Others/blob/main/SolarCode/ConvertToMWac.py
+# ----- CONVERT SOLAR ALL TO MWac FOR SUMMARY TABLES (TAKES 3-4 MINS)
+# ----- DIRECT COPY PASTE FORM: https://github.com/GlobalEnergyMonitor/Renewables_Others/blob/main/SolarCode/ConvertToMWac.py
 # ----- ***NOTE*** BE SURE TO USE LATEST SOLAR TRACKER FILE
 
-df_file="C:/Users/james/Documents/GEM/GIPT/Feb_2025_GIPT_update (GSPT.GWPT)/Global-Solar-Power-Tracker-February-2025.xlsx"
+df_file="./Global-Solar-Power-Tracker-February-2025.xlsx"
 
 dfs=[pandas.read_excel(df_file, sheet_name=i) for i in ['20 MW+','1-20 MW']]
 df = pandas.concat(dfs).reset_index()
@@ -96,7 +92,6 @@ for index, row in df.iterrows():
     df.loc[index, 'Other IDs (location)'] = new_loc_id
     df.loc[index, 'Other IDs (unit/phase)'] = new_phase_id
 
-
 ## compute liklihood based on the region
 regions = df['Region'].unique().tolist()
 region_prob = []
@@ -104,7 +99,6 @@ for region in regions:
     countsac = len(df[(df['Region'] == region) & (df['Capacity Rating'] == 'MWac') & (df['Other IDs (unit/phase)'] == '') & (df['Other IDs (location)'] == '')])
     countsdc = len(df[(df['Region'] == region) & (df['Capacity Rating'] == 'MWp/dc') & (df['Other IDs (unit/phase)'] == '') & (df['Other IDs (location)'] == '')])
     region_prob.append(countsac/(countsac+countsdc))
-
 
 ## compute liklihood based on the sub-region. If ac+dc counts are less than minval use region numbers
 subregions = df['Subregion'].unique().tolist()
@@ -155,57 +149,52 @@ df['Capacity Rating'] = 'MWac'
 gipt=gipt.set_index('GEM unit/phase ID')
 gipt.loc[df['GEM phase ID'],'Capacity (MW)']=df['Capacity (MW)'].values
 
+# ----- SUMMARY OF CAPACITY PER PARENT/OWNER
+# ----- FIRST HANDLE COMBUSTION 'PARENTS' IN A BIG LOOP
 
-
-################################################################################################
-### extra dash #4: ownership
-################################################################################################
-
-#function to handle combustion: Parents
-#loop status and append
+# Helper function to parse owners and calculate proportional shares
+def parse_owners_with_percentages(row):
+    owners_raw = str(row["Parent"])
+    capacity = row["Capacity (MW)"]
+    # Find all owners and optional percentages
+    pattern = r'([^;\[]+?)(?:\s*\[\s*(\d+(?:\.\d+)?)\s*%\s*\])?(?:;|$)'
+    matches = re.findall(pattern, owners_raw)
+    owners = []
+    total_percent = 0
+    percent_info = []
+    for owner, pct in matches:
+        owner = owner.strip()
+        if pct:
+            percent = float(pct)
+            total_percent += percent
+            percent_info.append((owner, percent))
+        else:
+            owners.append(owner)
+    # Normalize capacity by percentage or equally split if no percentages
+    result = []
+    if percent_info:
+        for owner, percent in percent_info:
+            share = capacity * (percent / 100)
+            result.append({
+                "Country/area": row["Country/area"],
+                "Parent": owner,
+                "Capacity (MW)": share
+            })
+    elif owners:
+        share = capacity / len(owners)
+        for owner in owners:
+            result.append({
+                "Country/area": row["Country/area"],
+                "Parent": owner,
+                "Capacity (MW)": share
+            })
+    return result
 
 res=[]
 for tech in ['coal','oil/gas']:
 	for status,status_name in zip([['operating'],['construction'],['pre-construction'],['announced'],['construction','pre-construction','announced']],['operating','construction','pre-construction','announced','in-dev']):
 		df_tmp=gipt[(gipt.Type==tech)&(gipt.Status.isin(status))]
 		df_tmp.loc[df_tmp.Parent.isnull(),'Parent']='unknown'
-		# Helper function to parse owners and calculate proportional shares
-		def parse_owners_with_percentages(row):
-		    owners_raw = str(row["Parent"])
-		    capacity = row["Capacity (MW)"]
-		    # Find all owners and optional percentages
-		    pattern = r'([^;\[]+?)(?:\s*\[\s*(\d+(?:\.\d+)?)\s*%\s*\])?(?:;|$)'
-		    matches = re.findall(pattern, owners_raw)
-		    owners = []
-		    total_percent = 0
-		    percent_info = []
-		    for owner, pct in matches:
-		        owner = owner.strip()
-		        if pct:
-		            percent = float(pct)
-		            total_percent += percent
-		            percent_info.append((owner, percent))
-		        else:
-		            owners.append(owner)
-		    # Normalize capacity by percentage or equally split if no percentages
-		    result = []
-		    if percent_info:
-		        for owner, percent in percent_info:
-		            share = capacity * (percent / 100)
-		            result.append({
-		                "Country/area": row["Country/area"],
-		                "Parent": owner,
-		                "Capacity (MW)": share
-		            })
-		    elif owners:
-		        share = capacity / len(owners)
-		        for owner in owners:
-		            result.append({
-		                "Country/area": row["Country/area"],
-		                "Parent": owner,
-		                "Capacity (MW)": share
-		            })
-		    return result
 		# Expand rows using the helper function
 		tmp_rows = []
 		for _, row in df_tmp.iterrows():
@@ -224,8 +213,10 @@ for tech in ['coal','oil/gas']:
 		df_tmp_aggregated["Cumulative Percentage (%)"] = df_tmp_aggregated.groupby("Country/area")["Percentage of Total Capacity (%)"].cumsum()
 		# Sort again for clarity
 		df_tmp_aggregated.sort_values(by=["Country/area", "Rank"], inplace=True)
+		# Add some indexing/categories
 		df_tmp_aggregated['Technology']=tech
 		df_tmp_aggregated['Status']=status_name
+		# Repeat sets above but aggregating globally
 		global_df_tmp_aggregated=df_tmp_aggregated.groupby(['Parent', 'Technology']).agg({'Capacity (MW)': 'sum',}).reset_index().sort_values('Capacity (MW)',ascending=False)
 		global_df_tmp_aggregated['Country/area']='Global'
 		global_df_tmp_aggregated["Total Capacity (MW)"] = global_df_tmp_aggregated.groupby("Country/area")["Capacity (MW)"].transform("sum")
@@ -234,61 +225,59 @@ for tech in ['coal','oil/gas']:
 		global_df_tmp_aggregated=global_df_tmp_aggregated[global_df_tmp_aggregated['Capacity (MW)']!=0.]
 		global_df_tmp_aggregated['Rank']=global_df_tmp_aggregated['Capacity (MW)'].rank(method="dense", ascending=False).astype(int)
 		global_df_tmp_aggregated['Status']=status_name
+		# Stick togther country and global outputs per technology
 		res.append(pandas.concat([global_df_tmp_aggregated,df_tmp_aggregated]))
-
-
-
 
 out1=pandas.concat(res)
 out1["Technology"] = out1["Technology"].str.title()
 
-#out1[['Technology','Country/area','Status','Rank','Parent','Capacity (MW)','Percentage of Total Capacity (%)','Cumulative Percentage (%)']].to_csv('C:/Users/james/Documents/GEM/GIPT/Viz/combustion_breakdown_v2.csv',encoding='utf-8-sig')
+
+# ----- NOW HANDLE NON-COMBUSTION 'OWNERS' IN A BIG LOOP
+
+# Helper function to parse owners and calculate proportional shares
+def parse_owners_with_percentages(row):
+    owners_raw = str(row["Owner"])
+    capacity = row["Capacity (MW)"]
+    # Find all owners and optional percentages
+    pattern = r'([^;\[]+?)(?:\s*\[\s*(\d+(?:\.\d+)?)\s*%\s*\])?(?:;|$)'
+    matches = re.findall(pattern, owners_raw)
+    owners = []
+    total_percent = 0
+    percent_info = []
+    for owner, pct in matches:
+        owner = owner.strip()
+        if pct:
+            percent = float(pct)
+            total_percent += percent
+            percent_info.append((owner, percent))
+        else:
+            owners.append(owner)
+    # Normalize capacity by percentage or equally split if no percentages
+    result = []
+    if percent_info:
+        for owner, percent in percent_info:
+            share = capacity * (percent / 100)
+            result.append({
+                "Country/area": row["Country/area"],
+                "Owner": owner,
+                "Capacity (MW)": share
+            })
+    elif owners:
+        share = capacity / len(owners)
+        for owner in owners:
+            result.append({
+                "Country/area": row["Country/area"],
+                "Owner": owner,
+                "Capacity (MW)": share
+            })
+    return result
 
 
-#function to handle others: Owner
-#loop status and append
 res2=[]
 for tech in ['solar','wind','hydropower','bioenergy','geothermal','nuclear']:
 	for status,status_name in zip([['operating'],['construction'],['pre-construction'],['announced'],['construction','pre-construction','announced']],['operating','construction','pre-construction','announced','in-dev']):
 		df_tmp=gipt[(gipt.Type==tech)&(gipt.Status.isin(status))]
 		df_tmp.loc[df_tmp.Owner.isnull(),'Owner']='unknown'
-		# Helper function to parse owners and calculate proportional shares
-		def parse_owners_with_percentages(row):
-		    owners_raw = str(row["Owner"])
-		    capacity = row["Capacity (MW)"]
-		    # Find all owners and optional percentages
-		    pattern = r'([^;\[]+?)(?:\s*\[\s*(\d+(?:\.\d+)?)\s*%\s*\])?(?:;|$)'
-		    matches = re.findall(pattern, owners_raw)
-		    owners = []
-		    total_percent = 0
-		    percent_info = []
-		    for owner, pct in matches:
-		        owner = owner.strip()
-		        if pct:
-		            percent = float(pct)
-		            total_percent += percent
-		            percent_info.append((owner, percent))
-		        else:
-		            owners.append(owner)
-		    # Normalize capacity by percentage or equally split if no percentages
-		    result = []
-		    if percent_info:
-		        for owner, percent in percent_info:
-		            share = capacity * (percent / 100)
-		            result.append({
-		                "Country/area": row["Country/area"],
-		                "Owner": owner,
-		                "Capacity (MW)": share
-		            })
-		    elif owners:
-		        share = capacity / len(owners)
-		        for owner in owners:
-		            result.append({
-		                "Country/area": row["Country/area"],
-		                "Owner": owner,
-		                "Capacity (MW)": share
-		            })
-		    return result
 		# Expand rows using the helper function
 		tmp_rows = []
 		for _, row in df_tmp.iterrows():
@@ -309,6 +298,7 @@ for tech in ['solar','wind','hydropower','bioenergy','geothermal','nuclear']:
 		df_tmp_aggregated.sort_values(by=["Country/area", "Rank"], inplace=True)
 		df_tmp_aggregated['Technology']=tech
 		df_tmp_aggregated['Status']=status_name
+		# Repeat sets above but aggregating globally
 		global_df_tmp_aggregated=df_tmp_aggregated.groupby(['Owner', 'Technology']).agg({'Capacity (MW)': 'sum',}).reset_index().sort_values('Capacity (MW)',ascending=False)
 		global_df_tmp_aggregated['Country/area']='Global'
 		global_df_tmp_aggregated["Total Capacity (MW)"] = global_df_tmp_aggregated.groupby("Country/area")["Capacity (MW)"].transform("sum")
@@ -317,60 +307,28 @@ for tech in ['solar','wind','hydropower','bioenergy','geothermal','nuclear']:
 		global_df_tmp_aggregated=global_df_tmp_aggregated[global_df_tmp_aggregated['Capacity (MW)']!=0.]
 		global_df_tmp_aggregated['Rank']=global_df_tmp_aggregated['Capacity (MW)'].rank(method="dense", ascending=False).astype(int)
 		global_df_tmp_aggregated['Status']=status_name
+		# Stick togther country and global outputs per technology
 		res2.append(pandas.concat([global_df_tmp_aggregated,df_tmp_aggregated]))
-
-
 
 out2=pandas.concat(res2)
 out2["Technology"] = out2["Technology"].str.title()
 
-
-#out[['Technology','Country/area','Status','Rank','Owner','Capacity (MW)','Percentage of Total Capacity (%)','Cumulative Percentage (%)']].to_csv('C:/Users/james/Documents/GEM/GIPT/Viz/non_combustion_breakdown_v1.csv',encoding='utf-8-sig')
-
+# RENAME TO ALLOW STICKING TOGETHER OF DATAFRAMES
 out2.rename(columns={'Owner': 'Parent'}, inplace=True)
 
+# STICK TOGETHER DATAFRAMES
+owners_df=pandas.concat([out1,out2])[['Technology','Country/area','Status','Parent','Capacity (MW)','Rank','Percentage of Total Capacity (%)','Cumulative Percentage (%)']]
 
-#pandas.concat([out1[out1.Status=='operating'],tmp])[['Country/area','Parent','Capacity (MW)','Technology','Status','Rank','Percentage of Total Capacity (%)','Cumulative Percentage (%)']].to_csv('C:/Users/james/Documents/GEM/GIPT/Viz/owner_breakdown_v1.csv',encoding='utf-8-sig')
+# RENAME SOME THINGS
 
-owners_df=pandas.concat([out1,out2])[['Country/area','Parent','Capacity (MW)','Technology','Status','Rank','Percentage of Total Capacity (%)','Cumulative Percentage (%)']]
+owners_df['Status'] = owners_df['Status'].replace({
+    'operating': 'Operating',
+    'pre-construction': 'Pre-construction',
+    'construction':'Construction',
+    'announced':'Announced',
+    'in-dev':'Construction+Pre-construction+Announced'
+})
 
-#owners_df=pandas.concat([out1[out1.Status=='operating'],tmp])[['Country/area','Parent','Capacity (MW)','Technology']].groupby(['Country/area', 'Technology']).head(100).reset_index(drop=True)
-
-owners_df_operating=owners_df[owners_df.Status=='operating'][['Country/area','Parent','Capacity (MW)','Technology']]
-
-
-# Group by Country/area and Technology and apply the top 20 logic
-top_20 = (
-    owners_df_operating.groupby(['Country/area', 'Technology'], group_keys=False)
-    .apply(lambda x: x.nlargest(30, 'Capacity (MW)'))
-)
-
-# Now filter out the rows that are not in the top 20
-df_remaining = pd.concat([owners_df_operating, top_20]).drop_duplicates(keep=False)
-# Aggregate the remaining rows
-others = (
-    df_remaining.groupby(['Country/area', 'Technology'], as_index=False)
-    .agg({'Capacity (MW)': 'sum'})
-)
-others['Parent'] = 'Others'
-# Combine top 20 with aggregated "Others" rows
-final_df = pd.concat([top_20, others], ignore_index=True)
-
-
-final_df[(final_df['Country/area']=='China')&(final_df.Technology=='Solar')]
-
-
-# Divide 'Capacity (MW)' by 1000 to convert to GW
-final_df['Capacity (MW)'] = final_df['Capacity (MW)'] / 1000
-
-# Create a custom sort key: 0 for 'Global', 1 for all others
-final_df['CountrySortKey'] = final_df['Country/area'].apply(lambda x: 0 if x == 'Global' else 1)
-
-# Sort by the custom key and then by 'Country/area'
-sorted_df = final_df.sort_values(by=['CountrySortKey', 'Country/area']).drop(columns='CountrySortKey')
-
-
-sorted_df.columns=['Country/area','Parent', 'Capacity (GW)', 'Type']
-sorted_df[['Country/area','Parent', 'Capacity (GW)', 'Type']].to_csv('C:/Users/james/Documents/GEM/GIPT/Viz/owner_breakdown_v5.csv',encoding='utf-8-sig', index=False)
+owners_df.to_csv('./ownership_summary_table.csv',encoding='utf-8-sig',index=False)
 
 
