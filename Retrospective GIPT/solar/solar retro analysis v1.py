@@ -64,7 +64,7 @@ solar_may_2022['GEM phase ID']='G100000'+solar_may_2022['GEM phase ID']
 # Drop duplicated units (sometimes above/below threshold contain the same units)
 solar_may_2022 = solar_may_2022[~solar_may_2022['GEM phase ID'].duplicated(keep=False)]
 
-## ---- Build up lists of units that are common to each interation of past trackers
+## ---- Build up lists of units that are common to each iteration of past trackers
 '''
 Note that this excludes units that get deleted in later tracker editions and so would only have partial tracker history
 i.e., only the history of units in most recent tracker are traced, deleted units with partial history are not.

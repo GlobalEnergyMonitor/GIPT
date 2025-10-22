@@ -153,7 +153,7 @@ gipt.loc[df['GEM phase ID'],'Capacity (MW)']=df['Capacity (MW)'].values
 # ----- FIRST HANDLE COMBUSTION 'PARENTS' IN A BIG LOOP
 
 # Helper function to parse owners and calculate proportional shares
-def parse_owners_with_percentages(row):
+def parse_parent_with_percentages(row):
     owners_raw = str(row["Parent"])
     capacity = row["Capacity (MW)"]
     # Find all owners and optional percentages
@@ -198,7 +198,7 @@ for tech in ['coal','oil/gas']:
 		# Expand rows using the helper function
 		tmp_rows = []
 		for _, row in df_tmp.iterrows():
-		    tmp_rows.extend(parse_owners_with_percentages(row))
+		    tmp_rows.extend(parse_parent_with_percentages(row))
 		df_tmp_expanded = pandas.DataFrame(tmp_rows)
 		# Aggregate capacity
 		df_tmp_aggregated = df_tmp_expanded.groupby(["Country/area", "Parent"], as_index=False)["Capacity (MW)"].sum()
