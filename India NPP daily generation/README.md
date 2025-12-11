@@ -5,7 +5,7 @@
 
 ## Overview
 
-This repository provides **daily generation data** for India’s grid-connected **coal, lignite, large-scale hydropower, nuclear, and oil/gas generators**.
+This repository provides **daily generation data** for over 700 of India’s grid-connected **coal, lignite, large-scale hydropower, nuclear, and oil/gas generators**.
 
 The primary data source is India’s **National Power Portal (NPP)**, which publishes daily generation reports:  
 🔗 https://npp.gov.in/
@@ -16,7 +16,7 @@ A **crosswalk** field is added to match individual generating units in the NPP d
 
 The archive spans **September 2017 to present**.
 
-To verify that this unit level data is representative and complete, a comparison is made in the .ipynb file against a separate data source for daily grid-connected generation (from the CEA, via https://robbieandrew.github.io/india/). The near perfect correspondence between the daily unit-level generation, summed across all units and this a separate data source for aggregate generation across India is encouraging. It shows that GEM has near perfect coverage of grid-connected generating units. And that the sum of the unit level generation data compiled here is complete.
+To verify that this unit level data is representative and complete, a comparison is made in the .ipynb file against a separate data source for daily grid-connected generation (from the CEA, via https://robbieandrew.github.io/india/). The near perfect correspondence between the daily unit-level generation, summed across all units, and this a separate data source for aggregate generation across India is encouraging. It shows that GEM has near perfect coverage of grid-connected generating units. And that the sum of the unit level generation data compiled here is complete.
 
 ---
 
