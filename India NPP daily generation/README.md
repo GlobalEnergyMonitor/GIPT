@@ -37,8 +37,11 @@ The compiled daily **unit-level** generation dataset.
 ### `npp_daily_generation.txt`
 Metadata and field descriptions for `npp_daily_generation.csv`.
 
-### `GEM_GIPT_NPP_crosswalk.csv`
+### `NPP_GIPT_crosswalk.csv`
 Mapping between **NPP unit names** and **GEM power facility names**.
+
+### `CEA_DGR_data_11.12.25.csv`
+Separate data source for daily grid-connected generation for all-India (from the CEA, via https://robbieandrew.github.io/india/)
 
 ### `Analyze NPP.ipynb` (Jupyter Notebook)
 A walkthrough demonstrating:
