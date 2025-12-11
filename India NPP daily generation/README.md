@@ -16,7 +16,7 @@ A **crosswalk** field is added to match individual generating units in the NPP d
 
 The archive spans **September 2017 to present**.
 
-To verify that this unit level data is representative and complete, a comparison is made in the .ipynb file against a separate data source for daily grid-connected generation (from the CEA, via https://robbieandrew.github.io/india/). The near perfect correspondence between the daily unit-level generation, summed across all units, and this a separate data source for aggregate generation across India is encouraging. It shows that GEM has near perfect coverage of grid-connected generating units. And that the sum of the unit level generation data compiled here is complete.
+To verify that this unit level data is representative and complete, a comparison is made in the [.ipynb file](GIPT/India NPP daily generation/Analyze NPP.ipynb) against a separate data source for daily grid-connected generation (from the CEA, via https://robbieandrew.github.io/india/). The near perfect correspondence between the daily unit-level generation, summed across all units, and this a separate data source for aggregate generation across India is encouraging. It shows that GEM has near perfect coverage of grid-connected generating units. And that the sum of the unit level generation data compiled here is complete.
 
 ---
 
