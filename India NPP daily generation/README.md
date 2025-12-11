@@ -28,14 +28,14 @@ Contains the original files downloaded from NPP:
 - **XLS files** from *May 2018 onward*
 
 ### `parsed NPP data/`
-Contains standardized CSV files of the daily generation data.
+Contains standardized .csv files of the daily generation data.
 
 ### `npp_daily_generation.parquet`
 The compiled daily **unit-level** generation dataset.  
-> ⚠️ **Parquet file:** for space efficiency, as ~3.5 million rows is not feasible for a csv (~500Mb)
+> ⚠️ **Parquet file:** for space efficiency, as ~3.5 million rows is not feasible for a .csv (~500Mb)
 
 ### `npp_daily_generation.txt`
-Metadata and field descriptions for `npp_daily_generation.csv`.
+Metadata and field descriptions for `npp_daily_generation.parquet`.
 
 ### `NPP_GIPT_crosswalk.csv`
 Mapping between **NPP unit names** and **GEM power facility names**.
@@ -45,7 +45,7 @@ Separate data source for daily grid-connected generation for all-India (from the
 
 ### `Analyze NPP.ipynb` (Jupyter Notebook)
 A walkthrough demonstrating:
-- Loading `npp_daily_generation.csv` into a pandas DataFrame  
+- Loading `npp_daily_generation.parquet` into a pandas DataFrame  
 - Merging with the GEM–GIPT crosswalk  
 - Performing sanity checks by comparing against aggregate national generation  
 
