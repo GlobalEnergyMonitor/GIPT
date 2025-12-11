@@ -43,9 +43,8 @@ Mapping between **NPP unit names** and **GEM power facility names**.
 ### `Analyze NPP.ipynb` (Jupyter Notebook)
 A walkthrough demonstrating:
 - Loading `npp_daily_generation.csv` into a pandas DataFrame  
-- Performing sanity checks by comparing against aggregate national generation  
 - Merging with the GEM–GIPT crosswalk  
-- Example analysis workflows  
+- Performing sanity checks by comparing against aggregate national generation  
 
 ---
 
@@ -55,6 +54,7 @@ Data is missing from the NPP archive (likely due to archiving issues) for the fo
 - 22/09/2017
 - 01/10/2017
 - 02/10/2017
+- 19/03/2020 to 31/05/2020
 
 These records are not available from the source and therefore absent from the compiled dataset.
 
@@ -62,9 +62,9 @@ These records are not available from the source and therefore absent from the co
 
 - [ ] add npp_daily_generation.txt metadata description
 - [ ] Further manual checking of crosswalk
-- [ ] Add code example for merging with GIPT crosswalk
+- [ ] Demonstrate use of GIPT crosswalk for data analysis, e.g., stratify plant capacity factor by unit age
 - [ ] Add additional data fields available in daily files. Requires sorting out the datetime info for plants coming off/online
-- [ ] Gas/diesel plant coverage/GEM matching still patchy, do we care?, add this later
+- [ ] Gas/diesel plant coverage/GEM matching still patchy, do we care?, it's a minor fuel, add this later
 - [ ] Add method for handling ongoing updates
 - [ ] Further sense checking: Monthly plant capacity factor data is also available from NPP. Check if this data corresponds with the daily files
 
