@@ -12,7 +12,7 @@ The primary data source is India’s **National Power Portal (NPP)**, which publ
 
 Where necessary, files have been digitized and standardized into a consistent tabular format to ensure **machine readability**.
 
-A **crosswalk** field is added to match individual generating units in the NPP dataset to Global Energy Monitor’s **Global Integrated Power Tracker (GIPT)**. This enables richer analysis using additional GIPT attributes such as unit location, commissioning year, and other metadata.
+A **crosswalk** field is added to match individual generating units in the NPP dataset to Global Energy Monitor’s **Global Integrated Power Tracker (GIPT)**. This enables richer analysis using additional GIPT attributes such as unit location, commissioning year, and other other data fields.
 
 The archive spans **September 2017 to present**.
 
@@ -38,7 +38,7 @@ The compiled daily **unit-level** generation dataset.
 Metadata and field descriptions for `npp_daily_generation.parquet`.
 
 ### `NPP_GIPT_crosswalk.csv`
-Mapping between **NPP unit names** and **GEM power facility names**.
+Mapping between **NPP plants / unit names** and **GEM plant / unit names**.
 
 ### `CEA_DGR_data_11.12.25.csv`
 Separate data source for daily grid-connected generation for all-India (from the CEA, via https://robbieandrew.github.io/india/)
@@ -67,7 +67,7 @@ These records are not available from the source and therefore absent from the co
 - [ ] Further manual checking of crosswalk
 - [ ] Demonstrate use of GIPT crosswalk for data analysis, e.g., stratify plant capacity factor by unit age
 - [ ] Add additional data fields available in daily files. Requires sorting out the datetime info for plants coming off/online
-- [ ] Gas/diesel plant coverage/GEM matching still patchy, do we care?, it's a minor fuel, add this later
+- [ ] Gas/diesel plant coverage/GEM matching still patchy, do we care?, it's a minor fuel in Inida, add this later
 - [ ] Add method for handling ongoing updates
 - [ ] Further sense checking: Monthly plant capacity factor data is also available from NPP. Check if this data corresponds with the daily files
 
