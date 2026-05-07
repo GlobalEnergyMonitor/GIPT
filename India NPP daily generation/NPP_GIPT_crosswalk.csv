@@ -1452,3 +1452,7 @@ SR,Tamil Nadu,State,coal,North Chennai Thermal Power Station,Stage II Unit 2,G10
 SR,Tamil Nadu,State,coal,North Chennai Thermal Power Station,Stage III,G100000107505,,,NORTH CHENNAI TPS STAGE 3,Unit 6,
 SR,Tamil Nadu,State,coal,North Chennai Thermal Power Station,Stage I Unit 3,G100000107502,,,NORTH CHENNAI TPS STAGE 1,Unit 6,
 SR,Tamil Nadu,State,coal,Mettur Thermal Power Station,Unit 5,G100000106897,,,METTUR TPS-II,Unit 1,
+WR,Chhatisgarh,Private,coal,JSW Mahanadi Power Company Limited,Unit 4,G100000105989,,,AKALTARA TPS,Unit 1,
+WR,Chhatisgarh,Private,coal,JSW Mahanadi Power Company Limited,Unit 1,G100000105986,,,AKALTARA TPS,Unit 2,
+WR,Chhatisgarh,Private,coal,JSW Mahanadi Power Company Limited,Unit 2,G100000105987,,,AKALTARA TPS,Unit 3,
+WR,Chhatisgarh,Private,coal,JSW Mahanadi Power Company Limited,Unit 3,G100000105988,,,AKALTARA TPS,Unit 4,

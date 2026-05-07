@@ -1,0 +1,146 @@
+,Parameter,State,diff_2025_vs_2024
+0,Coal,Uttar Pradesh,1225.3400000000256
+1,Oil & Gas,Uttar Pradesh,-521.5100000000001
+2,Nuclear,Uttar Pradesh,-930.54
+3,Hydro,Uttar Pradesh,643.5100000000002
+4,Solar,Uttar Pradesh,524.0000000000005
+5,Wind,Uttar Pradesh,0.0
+6,Small-Hydro,Uttar Pradesh,-30.230000000000004
+7,Bio Power,Uttar Pradesh,-142.7700000000002
+8,Coal,Chhattisgarh,1701.5800000000163
+9,Oil & Gas,Chhattisgarh,0.0
+10,Nuclear,Chhattisgarh,0.0
+11,Hydro,Chhattisgarh,51.650000000000034
+12,Solar,Chhattisgarh,174.93999999999983
+13,Wind,Chhattisgarh,0.0
+14,Small-Hydro,Chhattisgarh,47.19000000000001
+15,Bio Power,Chhattisgarh,-44.13999999999987
+16,Total,Uttar Pradesh,-767.7999999999884
+17,Total,Chhattisgarh,-1931.2200000000012
+18,Coal,Assam,-478.65999999999985
+19,Oil & Gas,Assam,-262.3499999999999
+20,Hydro,Assam,422.55999999999995
+21,Solar,Assam,4.860000000000014
+22,Wind,Assam,0.0
+23,Small-Hydro,Assam,-47.11
+24,Bio Power,Assam,-0.3400000000000001
+25,Coal,Jharkhand,-1564.5900000000038
+26,Oil & Gas,Jharkhand,0.0
+27,Hydro,Jharkhand,-60.51999999999998
+28,Solar,Jharkhand,-1.4700000000000006
+29,Wind,Jharkhand,0.0
+30,Small-Hydro,Jharkhand,7.629999999999999
+31,Bio Power,Jharkhand,0.0
+32,Coal,Odisha,929.3000000000029
+33,Oil & Gas,Odisha,0.0
+34,Hydro,Odisha,298.47000000000116
+35,Solar,Odisha,31.379999999999995
+36,Wind,Odisha,0.0
+37,Small-Hydro,Odisha,16.279999999999973
+38,Bio Power,Odisha,-16.190000000000005
+39,Coal,Andhra Pradesh,1463.199999999997
+40,Oil & Gas,Andhra Pradesh,278.11
+41,Hydro,Andhra Pradesh,2004.3700000000003
+42,Solar,Andhra Pradesh,10.30999999999949
+43,Wind,Andhra Pradesh,1088.5600000000004
+44,Small-Hydro,Andhra Pradesh,136.32
+45,Bio Power,Andhra Pradesh,-19.940000000000055
+46,Total,Assam,361.03999999999996
+47,Total,Jharkhand,1618.949999999997
+48,Total,Odisha,-1259.2400000000052
+49,Total,Andhra Pradesh,-4960.929999999993
+50,Coal,Maharashtra,-2245.3600000000006
+51,Oil & Gas,Maharashtra,-1495.8600000000001
+52,Nuclear,Maharashtra,-785.710000000001
+53,Hydro,Maharashtra,512.6199999999999
+54,Solar,Maharashtra,1932.1799999999994
+55,Wind,Maharashtra,189.4900000000007
+56,Small-Hydro,Maharashtra,41.8900000000001
+57,Bio Power,Maharashtra,-624.8699999999999
+58,Coal,Telangana,-487.72999999998865
+59,Oil & Gas,Telangana,0.0
+60,Nuclear,Telangana,0.0
+61,Hydro,Telangana,1640.9699999999993
+62,Solar,Telangana,-28.159999999999854
+63,Wind,Telangana,3.1499999999999773
+64,Small-Hydro,Telangana,-16.450000000000003
+65,Bio Power,Telangana,-26.960000000000008
+66,Coal,Karnataka,-2376.3599999999933
+67,Oil & Gas,Karnataka,597.0400000000001
+68,Nuclear,Karnataka,-1530.6000000000004
+69,Hydro,Karnataka,4452.0
+70,Solar,Karnataka,924.0599999999995
+71,Wind,Karnataka,4030.7999999999993
+72,Small-Hydro,Karnataka,432.8599999999999
+73,Bio Power,Karnataka,795.22
+74,Coal,Punjab,-1654.130000000001
+75,Oil & Gas,Punjab,0.0
+76,Nuclear,Punjab,0.0
+77,Hydro,Punjab,-185.50000000000045
+78,Solar,Punjab,52.350000000000136
+79,Wind,Punjab,0.0
+80,Small-Hydro,Punjab,-172.4999999999999
+81,Bio Power,Punjab,-77.69999999999993
+82,Total,Maharashtra,2475.6199999999953
+83,Total,Telangana,-1084.820000000007
+84,Total,Karnataka,-7325.020000000004
+85,Total,Punjab,2037.479999999996
+86,Coal,Madhya Pradesh,-3176.0299999999843
+87,Oil & Gas,Madhya Pradesh,0.0
+88,Hydro,Madhya Pradesh,780.3000000000002
+89,Solar,Madhya Pradesh,1733.8099999999995
+90,Wind,Madhya Pradesh,298.3600000000006
+91,Small-Hydro,Madhya Pradesh,-22.41999999999996
+92,Bio Power,Madhya Pradesh,-29.72
+93,Coal,Haryana,-3256.3200000000033
+94,Oil & Gas,Haryana,-61.24000000000001
+95,Hydro,Haryana,0.0
+96,Solar,Haryana,-35.77999999999997
+97,Wind,Haryana,0.0
+98,Small-Hydro,Haryana,46.77000000000001
+99,Bio Power,Haryana,-35.63000000000011
+100,Coal,West Bengal,-1718.0500000000175
+101,Oil & Gas,West Bengal,0.0
+102,Hydro,West Bengal,64.5600000000004
+103,Solar,West Bengal,104.88999999999996
+104,Wind,West Bengal,0.0
+105,Small-Hydro,West Bengal,-8.689999999999998
+106,Bio Power,West Bengal,-141.1400000000001
+107,Coal,Bihar,-2216.029999999999
+108,Oil & Gas,Bihar,0.0
+109,Hydro,Bihar,0.0
+110,Solar,Bihar,34.319999999999965
+111,Wind,Bihar,0.0
+112,Small-Hydro,Bihar,2.01
+113,Bio Power,Bihar,0.6199999999999903
+114,Total,Madhya Pradesh,415.70000000001164
+115,Total,Haryana,3342.2000000000007
+116,Total,West Bengal,1698.4300000000076
+117,Total,Bihar,2179.0800000000017
+118,Coal,Rajasthan,-5297.439999999995
+119,Oil & Gas,Rajasthan,-23.739999999999895
+120,Nuclear,Rajasthan,1651.1800000000012
+121,Hydro,Rajasthan,203.48000000000002
+122,Solar,Rajasthan,9629.80999999999
+123,Wind,Rajasthan,529.9299999999994
+124,Small-Hydro,Rajasthan,-1.42
+125,Bio Power,Rajasthan,141.85000000000008
+126,Total,Rajasthan,-6833.650000000009
+127,Coal,Tamil Nadu,-10419.839999999997
+128,Oil & Gas,Tamil Nadu,-469.6899999999998
+129,Nuclear,Tamil Nadu,1231.9500000000007
+130,Hydro,Tamil Nadu,1534.3599999999997
+131,Solar,Tamil Nadu,3105.039999999999
+132,Wind,Tamil Nadu,6910.039999999999
+133,Small-Hydro,Tamil Nadu,33.41999999999996
+134,Bio Power,Tamil Nadu,-294.7900000000001
+135,Total,Tamil Nadu,-1630.4900000000052
+136,Coal,Gujarat,-11452.699999999997
+137,Oil & Gas,Gujarat,-4292.7699999999995
+138,Nuclear,Gujarat,1290.7400000000016
+139,Hydro,Gujarat,398.97999999999956
+140,Solar,Gujarat,5703.73
+141,Wind,Gujarat,8190.139999999999
+142,Small-Hydro,Gujarat,-15.620000000000005
+143,Bio Power,Gujarat,89.82000000000001
+144,Total,Gujarat,87.68000000000757
