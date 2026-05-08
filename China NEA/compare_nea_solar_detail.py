@@ -15,6 +15,8 @@ if hasattr(sys.stdout, "reconfigure"):
 BASE_DIR = Path(__file__).resolve().parent
 REFERENCE_CSV = BASE_DIR / "NEA_solar_detail.csv"
 OUTPUTS_DIR = BASE_DIR / "outputs"
+PUBLIC_DIR = BASE_DIR / "public"
+PUBLIC_DATA_DIR = PUBLIC_DIR / "data"
 SCRAPED_DIR = OUTPUTS_DIR / "clean_csv"
 LOGS_DIR = OUTPUTS_DIR / "logs"
 REPORTS_DIR = OUTPUTS_DIR / "comparison_reports"
@@ -28,6 +30,7 @@ DUPLICATES_OUT = RA_CROSSCHECK_DIR / "nea_solar_detail_comparison_duplicates.csv
 UNMATCHED_FILES_OUT = RA_CROSSCHECK_DIR / "nea_solar_detail_unmatched_clean_files.csv"
 SCRAPED_WIDE_OUT = RA_CROSSCHECK_DIR / "scraped_clean_compiled_like_NEA_solar_detail.csv"
 SCRAPED_WIDE_SIMPLE_OUT = RA_CROSSCHECK_DIR / "scraped_wide.csv"
+PUBLIC_SCRAPED_WIDE_OUT = PUBLIC_DATA_DIR / "scraped_wide.csv"
 EXCEL_OUT = RA_CROSSCHECK_DIR / "nea_solar_detail_crosscheck.xlsx"
 
 TOLERANCE_GW = 0.01
@@ -721,6 +724,7 @@ def write_excel_report(comparison, summary, duplicates, unmatched, scraped_wide)
 
 def main():
     RA_CROSSCHECK_DIR.mkdir(parents=True, exist_ok=True)
+    PUBLIC_DATA_DIR.mkdir(parents=True, exist_ok=True)
     reference = load_reference_long()
     scraped, unmatched = load_scraped_long()
     if scraped.empty:
@@ -738,6 +742,13 @@ def main():
     scraped_wide_simple_out = write_csv_safely(
         scraped_wide,
         SCRAPED_WIDE_SIMPLE_OUT,
+        index=False,
+        encoding="utf-8-sig",
+        float_format="%.6f",
+    )
+    public_scraped_wide_out = write_csv_safely(
+        scraped_wide,
+        PUBLIC_SCRAPED_WIDE_OUT,
         index=False,
         encoding="utf-8-sig",
         float_format="%.6f",
@@ -789,6 +800,7 @@ def main():
     print(f"Unmatched clean-file report written: {UNMATCHED_FILES_OUT}")
     print(f"Scraped wide file written: {scraped_wide_out}")
     print(f"Scraped wide simple file written: {scraped_wide_simple_out}")
+    print(f"Public scraped wide file written: {public_scraped_wide_out}")
     print(f"Excel workbook written: {excel_out}")
     print()
     print(summary.to_string(index=False))
