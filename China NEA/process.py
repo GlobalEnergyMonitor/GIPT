@@ -1,35 +1,35 @@
 
 ####
 '''
-This notebook is a prototype pipeline for extracting provincial solar PV tables from NEA source pages.
+This notebook-style script extracts provincial solar PV tables from NEA source pages.
 
 The workflow has four main parts.
-First, we scrape each NEA article page to capture basic metadata and the image URLs that contain the table.
-Second, we download and stitch those images so each source page becomes one OCR-ready table image, even when the table was split across multiple images on the website.
-Third, we run table OCR on that stitched image to get a raw machine-readable table.
-Finally, we do a light cleaning and review pass: impose the expected schema, translate province names, convert OCR’d numeric text into numbers, and write out a review workbook that makes it easy to manually cross-check the results.
+First, it scrapes each NEA article page to capture metadata, table image URLs, and whether the page is image-based or an inline HTML table.
+Second, it downloads and vertically stitches image tables so split website images become one OCR-ready source image. Inline HTML pages skip this image step.
+Third, it extracts raw table rows. Image pages can use OpenAI Vision, direct PaddleOCR reconstruction, or img2table; inline pages use the HTML/text parser. OpenAI Vision calls are guarded by size/cost checks and their raw responses are written to logs/openai_responses for audit.
+Finally, it cleans and reviews the extraction: applies the fixed schema, handles legacy pre-household table layouts, translates province names, converts OCR/text numbers into numeric values, and writes clean CSVs plus review workbooks.
 
-The blocks are split up on purpose. A new user should be able to run them one by one, inspect the outputs at each stage, and stop wherever something looks off. That matters here because NEA tables are similar but not perfectly identical across years and checkpoints, so debugging is easier when scraping, stitching, OCR, and cleaning are all visible as separate steps.
+The blocks are split up on purpose. A new user should be able to run them one by one, inspect the outputs at each stage, and stop wherever something looks off. That matters here because NEA tables are similar but not perfectly identical across years and checkpoints, and older tables use different column layouts.
 
 What the steps do:
 
-Steps 1–2 set up the environment: imports, file paths, URLs, fixed schema, province translation map, and helper functions. This is the shared machinery the rest of the notebook relies on.
+Steps 1-2 set up the environment: imports, file paths, URL inputs, OCR/OpenAI settings, rerun toggles, fixed schema, province translation map, and helper functions. This is the shared machinery the rest of the script relies on.
 
 Step 3 scrapes the source pages and builds simple manifests, so you can see which pages were found, what metadata was extracted, and how many table images each page contains.
 
-Step 4 downloads the raw image files and stitches them vertically where needed. This creates a consistent input for OCR and also gives you a useful visual checkpoint.
+Step 4 downloads the raw image files and stitches them vertically where needed. This creates a consistent input for image-based extraction and gives you a useful visual checkpoint.
 
-Step 5 initializes the OCR engine once, so it can be reused for multiple pages without repeated setup overhead.
+Step 5 initializes the local OCR engine only when the selected mode needs it. OpenAI Vision mode skips local OCR initialization.
 
-Step 6 runs OCR on a single stitched page and saves the raw output to Excel. This is the first real extraction step, and it is where you confirm whether the table is being recognized properly.
+Step 6 runs one page through the active extraction path and saves the raw output to Excel. For image pages this uses the selected OCR/Vision mode; for inline pages this uses the HTML parser. This is the first real extraction checkpoint.
 
-Step 7 cleans that raw OCR output. It finds the start of the table body, applies the expected schema, translates province names, and converts value columns from OCR text to numeric form.
+Step 7 cleans the raw output. It finds the table body, normalizes older sparse/cumulative-first layouts, applies the expected schema, translates province names, and converts value columns from OCR/text strings to numeric form.
 
 Step 8 builds a human-review version of the table. This includes English labels, expected Chinese labels, and the cleaned values in one place so you can visually compare the machine output against the source.
 
 Step 9 adds light workbook formatting to make the review file easier to read.
 
-Step 10 is a small batch loop that repeats the same process across multiple pages once the single-page flow is working. It is intentionally simple so that failures are easy to spot and debug.
+Step 10 is the batch loop. It can run all pages, rerun only URLs that failed according to logs/run_summary.csv, or force rerun specific URLs. It updates run_summary.csv after each page so progress and failures are visible during long runs.
 
 '''
 ####
@@ -41,9 +41,13 @@ conda activate neaocr
 python -m pip install --upgrade pip
 python -m pip install "numpy<2"
 python -m pip install paddlepaddle==3.2.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
-python -m pip install paddleocr opencv-python pillow beautifulsoup4 requests pandas
+python -m pip install paddleocr opencv-python pillow beautifulsoup4 requests pandas openpyxl
 
 python -m pip install "img2table[paddle]"
+
+# Required only when STEP6_OCR_MODE = "openai_vision".
+# PowerShell:
+# $env:OPENAI_API_KEY="your_api_key_here"
 
 python -c "import img2table; print('img2table ok')"
 python -c "from img2table.document import Image; print('Image ok')"
@@ -161,6 +165,15 @@ OPENAI_MODEL_PRICING = {
         "image_token_multiplier": 1.62,
     },
 }
+
+# OCR extraction mode notes:
+# - With the current default, STEP6_OCR_MODE = "openai_vision", image tables
+#   use the OpenAI helpers below. Local Paddle/img2table helpers are not called.
+# - STEP6_OCR_MODE = "direct_paddle" uses Paddle text boxes and custom row/column
+#   reconstruction; if that fails, it falls back to img2table.
+# - STEP6_OCR_MODE = "img2table" uses img2table directly.
+# The local OCR code is kept because it is useful for offline/debug runs, but it
+# is intentionally dormant in the default OpenAI Vision workflow.
 
 # img2table can occasionally raise an opaque OpenCV error while looking for
 # table titles above detected tables. Returning no contours is consistent with
@@ -420,6 +433,11 @@ def to_float(x):
         return pd.NA
 
 
+# Local Paddle/img2table OCR helpers.
+# These functions are not used when STEP6_OCR_MODE = "openai_vision".
+# They are retained for the alternate local modes:
+# - direct_paddle: direct PaddleOCR text detection plus custom table assembly
+# - img2table: img2table's table extraction wrapper
 def box_to_xyxy(box):
     arr = np.asarray(box)
     if arr.ndim == 1 and arr.size == 4:
@@ -593,6 +611,9 @@ def extract_raw_table_img2table(image_path, ocr):
     return tables[0].df.copy()
 
 
+# OpenAI Vision extraction helpers.
+# These are the active image-table extraction helpers when the default
+# STEP6_OCR_MODE = "openai_vision" is used.
 def image_to_data_url(image_path):
     suffix = Path(image_path).suffix.lower()
     media_type = "image/png" if suffix == ".png" else "image/jpeg"
@@ -811,6 +832,8 @@ Rules:
 
 
 def extract_raw_table_from_image(image_path, ocr, mode=STEP6_OCR_MODE):
+    # Single routing point for image-based pages. Inline HTML pages bypass this
+    # and go through extract_inline_table_from_html().
     if mode == "openai_vision":
         print("using OpenAI vision table extraction")
         return extract_raw_table_openai_vision(image_path)
