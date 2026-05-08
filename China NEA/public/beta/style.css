@@ -92,6 +92,12 @@ h1 {
   font-weight: 700;
 }
 
+.pill a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
