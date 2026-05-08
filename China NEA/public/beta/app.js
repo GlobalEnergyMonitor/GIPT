@@ -131,6 +131,9 @@ const getYear = col => Number(col.slice(0, 4));
 
 const isYearEnd = col => col.endsWith("12");
 
+let columnChartPeriodMode = "annual";
+let columnChartContext = null;
+
 Papa.parse(DATA_PATH, {
   download: true,
   header: true,
@@ -196,8 +199,22 @@ function initialise(rawRows) {
   renderStats(national, startCol, latestCol);
   renderBullets(national, latestProvinceRows, growthProvinceRows, baselineCol, latestCol);
   renderD3ProvinceMap(lookup, availableTimeCols, latestAvailableCol);
-  renderCharts(national, latestProvinceRows, growthProvinceRows);
-  renderTables(latestProvinceRows, growthProvinceRows, national[national.length - 1].total);
+  renderCharts(
+    national,
+    latestProvinceRows,
+    growthProvinceRows,
+    lookup,
+    annualCols,
+    availableTimeCols,
+    provinces
+  );
+  renderTables(
+    latestProvinceRows,
+    growthProvinceRows,
+    national[national.length - 1].total,
+    baselineCol,
+    latestCol
+  );
 }
 
 function buildLookup(rows) {
@@ -593,11 +610,80 @@ function makeMapBoxes(col, lookup, settings) {
     .filter(Boolean);
 }
 
-function renderCharts(national, latestProvinceRows, growthProvinceRows) {
-  renderNationalStack(national);
-  renderAnnualAdditions(national);
+function renderCharts(national, latestProvinceRows, growthProvinceRows, lookup, annualCols, availableTimeCols, provinces) {
+  columnChartContext = {
+    lookup,
+    annualCols,
+    availableTimeCols,
+    provinces
+  };
+
+  setupColumnChartPeriodToggle();
+  setupAreaSelect("#area-stack-select", provinces, renderColumnCharts);
+  setupAreaSelect("#area-additions-select", provinces, renderColumnCharts);
+  renderColumnCharts();
   renderProvinceMix(latestProvinceRows);
   renderScatter(latestProvinceRows, growthProvinceRows);
+}
+
+function setupAreaSelect(selector, provinces, onChange) {
+  const select = document.querySelector(selector);
+  if (!select) return;
+
+  const areas = ["Total", ...provinces];
+  select.innerHTML = areas
+    .map(area => `<option value="${area}">${area}</option>`)
+    .join("");
+
+  select.addEventListener("change", onChange);
+  select.value = "Total";
+}
+
+function setupColumnChartPeriodToggle() {
+  const buttons = [...document.querySelectorAll("[data-chart-period]")];
+  if (!buttons.length) return;
+
+  const syncButtons = () => {
+    buttons.forEach(button => {
+      button.classList.toggle("is-active", button.dataset.chartPeriod === columnChartPeriodMode);
+    });
+  };
+
+  buttons.forEach(button => {
+    button.addEventListener("click", () => {
+      columnChartPeriodMode = button.dataset.chartPeriod;
+      syncButtons();
+      renderColumnCharts();
+    });
+  });
+
+  syncButtons();
+}
+
+function activeColumnChartCols() {
+  if (!columnChartContext) return [];
+  return columnChartPeriodMode === "quarterly"
+    ? columnChartContext.availableTimeCols
+    : columnChartContext.annualCols;
+}
+
+function renderColumnCharts() {
+  if (!columnChartContext) return;
+
+  const cols = activeColumnChartCols();
+  const stackArea = document.querySelector("#area-stack-select")?.value || "Total";
+  const additionsArea = document.querySelector("#area-additions-select")?.value || "Total";
+
+  renderNationalStack(
+    makeAreaSeries(stackArea, cols, columnChartContext.lookup),
+    stackArea,
+    columnChartPeriodMode
+  );
+  renderAnnualAdditions(
+    makeAreaSeries(additionsArea, cols, columnChartContext.lookup),
+    additionsArea,
+    columnChartPeriodMode
+  );
 }
 
 function baseLayout(extra = {}) {
@@ -626,8 +712,8 @@ function baseConfig() {
   };
 }
 
-function renderNationalStack(national) {
-  const x = national.map(d => String(d.year));
+function renderNationalStack(national, area = "Total", periodMode = "annual") {
+  const x = national.map(d => periodMode === "quarterly" ? parseTimeLabel(d.col) : String(d.year));
 
   const traces = [
     {
@@ -655,6 +741,14 @@ function renderNationalStack(national) {
 
   Plotly.newPlot("chart-national-stack", traces, baseLayout({
     barmode: "stack",
+    title: {
+      text: area,
+      x: 0,
+      xanchor: "left",
+      font: {
+        size: 14
+      }
+    },
     yaxis: {
       title: "GW",
       gridcolor: "#ebe8df",
@@ -667,11 +761,12 @@ function renderNationalStack(national) {
   }), baseConfig());
 }
 
-function renderAnnualAdditions(national) {
+function renderAnnualAdditions(national, area = "Total", periodMode = "annual") {
   const additions = national.slice(1).map((d, i) => {
     const prev = national[i];
 
     return {
+      col: d.col,
       year: d.year,
       utility: safeChange(d.utility, prev.utility),
       nonHousehold: safeChange(d.nonHousehold, prev.nonHousehold),
@@ -680,7 +775,7 @@ function renderAnnualAdditions(national) {
     };
   });
 
-  const x = additions.map(d => String(d.year));
+  const x = additions.map(d => periodMode === "quarterly" ? parseTimeLabel(d.col) : String(d.year));
 
   const traces = [
     {
@@ -708,6 +803,14 @@ function renderAnnualAdditions(national) {
 
   Plotly.newPlot("chart-additions", traces, baseLayout({
     barmode: "stack",
+    title: {
+      text: area,
+      x: 0,
+      xanchor: "left",
+      font: {
+        size: 13
+      }
+    },
     yaxis: {
       title: "GW added",
       gridcolor: "#ebe8df",
@@ -841,7 +944,18 @@ function renderScatter(latestProvinceRows, growthProvinceRows) {
   }), baseConfig());
 }
 
-function renderTables(latestProvinceRows, growthProvinceRows, nationalLatestTotal) {
+function renderTables(latestProvinceRows, growthProvinceRows, nationalLatestTotal, baselineCol, latestCol) {
+  const latestNote = document.querySelector("#table-latest-note");
+  if (latestNote) {
+    latestNote.textContent = `Top provinces at year-end ${getYear(latestCol)}.`;
+  }
+
+  const growthNote = document.querySelector("#table-growth-note");
+  if (growthNote) {
+    growthNote.textContent =
+      `Capacity change from ${parseTimeLabel(baselineCol)} to year-end ${getYear(latestCol)}.`;
+  }
+
   const latestRows = latestProvinceRows.slice(0, 15).map(d => ({
     Province: d.area,
     "Total GW": d.total,

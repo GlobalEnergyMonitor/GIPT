@@ -33,6 +33,8 @@ Other useful outputs include:
 
 The `public/beta/` folder contains the deployed beta visualization webpage. It loads `public/data/scraped_wide.csv` and renders summary stats, narrative bullets, charts, and a schematic province map of solar PV capacity and installation type.
 
+Use `public/beta/` as the source of truth for webpage edits. The older `beta page/` folder is only a local mirror; run `.\sync_beta_page.ps1` from this folder if you want to refresh that mirror.
+
 ## GitHub Pages
 
 This repo is set up to deploy the `China NEA/public/` folder with a GitHub Actions workflow at the repository root. On a public repository, this works with regular GitHub Free.
