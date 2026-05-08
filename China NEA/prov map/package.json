@@ -1,0 +1,14 @@
+{
+  "name": "2c93c98e7272c41b",
+  "main": "2c93c98e7272c41b@101.js",
+  "version": "101.0.0",
+  "homepage": "https://observablehq.com/d/2c93c98e7272c41b",
+  "author": {
+    "name": "Global Energy Monitor",
+    "url": "https://observablehq.com/@global-energy-monitor2"
+  },
+  "type": "module",
+  "peerDependencies": {
+    "@observablehq/runtime": "4 - 5"
+  }
+}

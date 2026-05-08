@@ -1,0 +1,34 @@
+﻿province_cn,province_en,new_capacity_total_10kw,new_capacity_utility_10kw,new_capacity_distributed_10kw,new_capacity_residential_10kw,cum_capacity_total_10kw,cum_capacity_utility_10kw,cum_capacity_distributed_10kw,cum_capacity_residential_10kw,province_translation_missing
+总计,Total,4426.0,2330.0,2096.0,,17446.0,12384.0,5062.0,,False
+北京,Beijing,15.0,0.0,15.0,,40.0,5.0,35.0,,False
+天津,Tianjin,60.0,44.0,16.0,,128.0,97.0,31.0,,False
+河北,Hebei,366.0,195.0,171.0,,1234.0,856.0,378.0,,False
+山西,Shanxi,274.0,151.0,123.0,,864.0,681.0,183.0,,False
+内蒙古,Inner Mongolia,202.0,171.0,31.0,,945.0,912.0,33.0,,False
+辽宁,Liaoning,79.0,34.0,45.0,,302.0,219.0,83.0,,False
+吉林,Jilin,106.0,95.0,11.0,,265.0,203.0,62.0,,False
+黑龙江,Heilongjiang,121.0,70.0,51.0,,215.0,141.0,74.0,,False
+上海,Shanghai,31.0,4.0,27.0,,89.0,6.0,83.0,,False
+江苏,Jiangsu,425.0,208.0,217.0,,1332.0,792.0,540.0,,False
+浙江,Zhejiang,324.0,47.0,277.0,,1138.0,362.0,776.0,,False
+安徽,Anhui,230.0,112.0,118.0,,1118.0,677.0,441.0,,False
+福建,Fujian,55.0,3.0,52.0,,148.0,37.0,111.0,,False
+江西,Jiangxi,87.0,17.0,70.0,,536.0,294.0,242.0,,False
+山东,Shandong,309.0,67.0,242.0,,1361.0,648.0,713.0,,False
+河南,Henan,287.0,70.0,217.0,,991.0,600.0,391.0,,False
+湖北,Hubei,97.0,32.0,65.0,,510.0,335.0,175.0,,False
+湖南,Hunan,117.0,41.0,76.0,,292.0,126.0,166.0,,False
+广东,Guangdong,196.0,89.0,107.0,,527.0,282.0,245.0,,False
+广西,Guangxi,55.0,31.0,24.0,,124.0,94.0,30.0,,False
+海南,Hainan,103.0,96.0,7.0,,136.0,123.0,13.0,,False
+重庆,Chongqing,30.0,28.0,2.0,,43.0,39.0,4.0,,False
+四川,Sichuan,46.0,41.0,5.0,,181.0,167.0,14.0,,False
+贵州,Guizhou,41.0,33.0,8.0,,178.0,168.0,10.0,,False
+云南,Yunnan,109.0,103.0,6.0,,343.0,331.0,12.0,,False
+西藏,Tibet,18.0,18.0,0.0,,98.0,98.0,0.0,,False
+陕西,Shaanxi,192.0,138.0,54.0,,716.0,613.0,103.0,,False
+甘肃,Gansu,44.0,13.0,31.0,,828.0,779.0,49.0,,False
+青海,Qinghai,166.0,161.0,5.0,,956.0,946.0,10.0,,False
+宁夏,Ningxia,196.0,174.0,22.0,,816.0,762.0,54.0,,False
+新疆维吾尔自治区,Xinjiang,45.0,44.0,1.0,,953.0,952.0,1.0,,False
+新疆兵团,Xinjiang Production and Construction Corps,0.0,0.0,0.0,,39.0,39.0,0.0,,False

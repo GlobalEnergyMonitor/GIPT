@@ -58,19 +58,26 @@ python -c "from img2table.ocr import PaddleOCR; print('img2table PaddleOCR wrapp
 #1) Imports, paths, URLs, fixed schema, province map
 
 import re
+import os
 import sys
 import time
+import json
+import base64
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
 import pandas as pd
 import requests
 import cv2
+import numpy as np
 from bs4 import BeautifulSoup
 from PIL import Image as PILImage
 from openpyxl import load_workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
+
+os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
+
 from img2table.document import Image as Img2TableImage
 from img2table.ocr import PaddleOCR as Img2TablePaddleOCR
 from img2table.tables.processing import common as img2table_common
@@ -86,13 +93,15 @@ RAW_TABLES_DIR = BASE_DIR / "raw_tables_xlsx"
 REVIEW_DIR = BASE_DIR / "review_workbooks"
 CLEAN_CSV_DIR = BASE_DIR / "clean_csv"
 LOGS_DIR = BASE_DIR / "logs"
+OPENAI_RESPONSES_DIR = LOGS_DIR / "openai_responses"
 
-for d in [BASE_DIR, RAW_IMAGES_DIR, STITCHED_DIR, RAW_TABLES_DIR, REVIEW_DIR, CLEAN_CSV_DIR, LOGS_DIR]:
+for d in [BASE_DIR, RAW_IMAGES_DIR, STITCHED_DIR, RAW_TABLES_DIR, REVIEW_DIR, CLEAN_CSV_DIR, LOGS_DIR, OPENAI_RESPONSES_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 # ============================================================
 # INPUT URLS
 # ============================================================
+# Fallback/testing list. Used only when URLS_CSV is None.
 URLS = [
     "https://www.nea.gov.cn/20260305/4216fa1274bd4b7f8da92090ba3999aa/c.html",
     "https://www.nea.gov.cn/20251112/35126d06a151461882b61d0a2e5706a6/c.html",
@@ -104,10 +113,20 @@ URLS = [
     "https://www.nea.gov.cn/2024-05/06/c_1310773741.htm",
 ]
 
-# optional: use a CSV instead of inline URLS
-# should contain column 'url' or 'source_page_url'
-URLS_CSV = None
-# URLS_CSV = BASE_DIR / "nea_provincial_pv_source_pages_structured_2016_2025.csv"
+# Use the full structured URL manifest by default.
+# It should contain column 'url' or 'source_page_url'.
+URLS_CSV = BASE_DIR / "nea_provincial_pv_source_pages_structured_2016_2025.csv"
+
+# Step 10 toggle. When True, only rerun URLs marked failed in logs/run_summary.csv.
+# Existing successful rows are kept in run_summary.csv and failed rows are replaced
+# as they are retried.
+RERUN_ONLY_FAILED_FROM_RUN_SUMMARY = False
+FORCE_RERUN_URLS = []
+# Example:
+# FORCE_RERUN_URLS = [
+#     "https://www.nea.gov.cn/2021-04/27/c_139910029.htm",
+#     "https://www.nea.gov.cn/2021-10/25/c_1310267679.htm",
+# ]
 
 REQUEST_HEADERS = {
     "User-Agent": (
@@ -121,6 +140,27 @@ OCR_LANG = "ch"
 MIN_CONFIDENCE = 50
 TOTAL_LABEL = "总计"
 EXPECTED_N_COLS = 9
+INLINE_TABLE_PARSER_VERSION = "html-table-v2"
+STEP6_OCR_MODE = "openai_vision"  # "openai_vision", "direct_paddle", or "img2table"
+OPENAI_VISION_MODEL = "gpt-4.1-mini"
+OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
+OPENAI_IMAGE_DETAIL = "high"  # "low", "high", or "auto"; high is safer for small table text
+OPENAI_MAX_OUTPUT_TOKENS = 5000
+OPENAI_MAX_IMAGE_PIXELS = 8_000_000
+OPENAI_MAX_IMAGE_FILE_MB = 8
+OPENAI_MAX_ESTIMATED_CALL_COST_USD = 0.02
+OPENAI_MAX_BATCH_IMAGE_CALLS = 50
+
+OPENAI_MODEL_PRICING = {
+    # USD per 1M tokens. Image token estimate follows OpenAI's patch-based
+    # sizing for the gpt-4.1-mini 2025-04-14 snapshot family.
+    "gpt-4.1-mini": {
+        "input_per_1m": 0.40,
+        "output_per_1m": 1.60,
+        "image_patch_budget": 1536,
+        "image_token_multiplier": 1.62,
+    },
+}
 
 # img2table can occasionally raise an opaque OpenCV error while looking for
 # table titles above detected tables. Returning no contours is consistent with
@@ -197,6 +237,7 @@ PROVINCE_EN_MAP = {
     "青海": "Qinghai",
     "宁夏": "Ningxia",
     "新疆": "Xinjiang",
+    "新疆维吾尔自治区": "Xinjiang",
     "新疆兵团": "Xinjiang Production and Construction Corps",
     "新疆生产建设兵团": "Xinjiang Production and Construction Corps",
 }
@@ -379,6 +420,415 @@ def to_float(x):
         return pd.NA
 
 
+def box_to_xyxy(box):
+    arr = np.asarray(box)
+    if arr.ndim == 1 and arr.size == 4:
+        x1, y1, x2, y2 = arr.tolist()
+    else:
+        arr = arr.reshape(-1, 2)
+        x1, y1 = arr.min(axis=0).tolist()
+        x2, y2 = arr.max(axis=0).tolist()
+    return float(x1), float(y1), float(x2), float(y2)
+
+
+def paddle_result_to_words(ocr_result, min_confidence=MIN_CONFIDENCE):
+    rows = []
+    min_score = min_confidence / 100
+    for text, score, box in zip(
+        ocr_result.get("rec_texts", []),
+        ocr_result.get("rec_scores", []),
+        ocr_result.get("rec_boxes", []),
+    ):
+        text = str(text).strip()
+        score = float(score)
+        if not text or score < min_score:
+            continue
+        x1, y1, x2, y2 = box_to_xyxy(box)
+        rows.append({
+            "text": text,
+            "score": score,
+            "x1": x1,
+            "y1": y1,
+            "x2": x2,
+            "y2": y2,
+            "xc": (x1 + x2) / 2,
+            "yc": (y1 + y2) / 2,
+            "height": y2 - y1,
+        })
+    return pd.DataFrame(rows)
+
+
+def match_known_province(text):
+    clean = normalize_province_name(text)
+    if clean in PROVINCE_EN_MAP:
+        return clean
+    for province in sorted(PROVINCE_EN_MAP, key=len, reverse=True):
+        if province in clean:
+            return province
+    return None
+
+
+def cluster_1d(values, n_clusters, max_iter=50):
+    values = np.asarray(values, dtype=float)
+    if len(values) < n_clusters:
+        raise ValueError(f"Need at least {n_clusters} OCR positions, got {len(values)}")
+
+    sorted_values = np.sort(values)
+    centers = np.array([np.median(chunk) for chunk in np.array_split(sorted_values, n_clusters)])
+
+    for _ in range(max_iter):
+        distances = np.abs(values[:, None] - centers[None, :])
+        labels = distances.argmin(axis=1)
+        next_centers = centers.copy()
+        for idx in range(n_clusters):
+            members = values[labels == idx]
+            if len(members):
+                next_centers[idx] = np.median(members)
+        if np.allclose(centers, next_centers):
+            break
+        centers = next_centers
+
+    return np.sort(centers)
+
+
+def direct_paddle_content(image_path, ocr):
+    image = np.array(open_image(image_path))
+    paddle_engine = getattr(getattr(ocr, "instance", None), "ocr", None)
+    if paddle_engine is not None and hasattr(paddle_engine, "predict"):
+        result = paddle_engine.predict(input=[image])
+        first = result[0]
+        return {
+            "rec_texts": list(first["rec_texts"]),
+            "rec_scores": list(first["rec_scores"]),
+            "rec_boxes": [box.tolist() if hasattr(box, "tolist") else box for box in first["rec_boxes"]],
+        }
+
+    doc = Img2TableImage(str(image_path))
+    return ocr.content(document=doc)[0]
+
+
+def extract_raw_table_direct_paddle(image_path, ocr, expected_n_cols=EXPECTED_N_COLS):
+    ocr_result = direct_paddle_content(image_path, ocr)
+    words = paddle_result_to_words(ocr_result)
+    if words.empty:
+        raise ValueError("Direct PaddleOCR returned no text")
+
+    words["province_match"] = words["text"].apply(match_known_province)
+    row_labels = words[words["province_match"].notna()].sort_values(["yc", "x1"]).copy()
+    if row_labels.empty:
+        raise ValueError("Direct PaddleOCR could not find any known province/total labels")
+
+    median_height = max(8, float(words["height"].median()))
+    row_cluster_tol = max(10, median_height * 1.4)
+    row_token_tol = max(12, median_height * 1.6)
+
+    row_anchors = []
+    for item in row_labels.itertuples(index=False):
+        if row_anchors and abs(item.yc - row_anchors[-1]["yc"]) <= row_cluster_tol:
+            row_anchors[-1]["yc_values"].append(item.yc)
+            if item.x1 < row_anchors[-1]["x1"]:
+                row_anchors[-1]["label"] = item.province_match
+                row_anchors[-1]["x1"] = item.x1
+        else:
+            row_anchors.append({
+                "yc": item.yc,
+                "yc_values": [item.yc],
+                "label": item.province_match,
+                "x1": item.x1,
+            })
+
+    for anchor in row_anchors:
+        anchor["yc"] = float(np.median(anchor["yc_values"]))
+
+    body_tokens = []
+    for anchor in row_anchors:
+        row_words = words[words["yc"].sub(anchor["yc"]).abs() <= row_token_tol].copy()
+        row_words["row_yc"] = anchor["yc"]
+        row_words["row_label"] = anchor["label"]
+        body_tokens.append(row_words)
+
+    body_tokens = pd.concat(body_tokens, ignore_index=True)
+    column_centers = cluster_1d(body_tokens["xc"].tolist(), expected_n_cols)
+
+    output_rows = []
+    seen_y = set()
+    for anchor in row_anchors:
+        row_key = round(anchor["yc"], 1)
+        if row_key in seen_y:
+            continue
+        seen_y.add(row_key)
+
+        row_words = body_tokens[body_tokens["row_yc"].eq(anchor["yc"])].copy()
+        cells = [[] for _ in range(expected_n_cols)]
+        for token in row_words.sort_values(["x1", "y1"]).itertuples(index=False):
+            col_idx = int(np.argmin(np.abs(column_centers - token.xc)))
+            cells[col_idx].append(token.text)
+
+        values = ["".join(parts).strip() for parts in cells]
+        if not values[0]:
+            values[0] = anchor["label"]
+        if len(values) == expected_n_cols:
+            output_rows.append(values)
+
+    raw_df = pd.DataFrame(output_rows)
+    if raw_df.empty:
+        raise ValueError("Direct PaddleOCR did not reconstruct any table rows")
+    if not raw_df.iloc[:, 0].astype(str).str.strip().eq(TOTAL_LABEL).any():
+        raise ValueError(f"Direct PaddleOCR did not reconstruct a '{TOTAL_LABEL}' row")
+    return raw_df
+
+
+def extract_raw_table_img2table(image_path, ocr):
+    doc = Img2TableImage(str(image_path))
+    tables = doc.extract_tables(
+        ocr=ocr,
+        implicit_rows=True,
+        implicit_columns=True,
+        borderless_tables=False,
+        min_confidence=MIN_CONFIDENCE,
+    )
+    print("n_tables:", len(tables))
+    if len(tables) == 0:
+        raise ValueError("No tables returned by OCR")
+    return tables[0].df.copy()
+
+
+def image_to_data_url(image_path):
+    suffix = Path(image_path).suffix.lower()
+    media_type = "image/png" if suffix == ".png" else "image/jpeg"
+    encoded = base64.b64encode(Path(image_path).read_bytes()).decode("ascii")
+    return f"data:{media_type};base64,{encoded}"
+
+
+def estimate_openai_vision_call_cost(image_path, prompt, model, max_output_tokens):
+    pricing = OPENAI_MODEL_PRICING.get(model)
+    if pricing is None:
+        raise ValueError(
+            f"No local OpenAI pricing guard for model '{model}'. "
+            "Add it to OPENAI_MODEL_PRICING before making API calls."
+        )
+
+    image_path = Path(image_path)
+    with PILImage.open(image_path) as img:
+        width, height = img.size
+
+    image_pixels = width * height
+    image_file_mb = image_path.stat().st_size / (1024 * 1024)
+    patch_count = int(np.ceil(width / 32) * np.ceil(height / 32))
+    resized_patch_count = min(patch_count, pricing["image_patch_budget"])
+    image_tokens = int(np.ceil(resized_patch_count * pricing["image_token_multiplier"]))
+    prompt_tokens = max(1, int(np.ceil(len(prompt) / 4)))
+    estimated_input_tokens = image_tokens + prompt_tokens
+
+    estimated_input_cost = estimated_input_tokens / 1_000_000 * pricing["input_per_1m"]
+    estimated_output_cost = max_output_tokens / 1_000_000 * pricing["output_per_1m"]
+
+    return {
+        "width": width,
+        "height": height,
+        "image_pixels": image_pixels,
+        "image_file_mb": image_file_mb,
+        "image_tokens": image_tokens,
+        "prompt_tokens": prompt_tokens,
+        "estimated_input_tokens": estimated_input_tokens,
+        "max_output_tokens": max_output_tokens,
+        "estimated_max_cost_usd": estimated_input_cost + estimated_output_cost,
+    }
+
+
+def guard_openai_vision_call(image_path, prompt):
+    estimate = estimate_openai_vision_call_cost(
+        image_path=image_path,
+        prompt=prompt,
+        model=OPENAI_VISION_MODEL,
+        max_output_tokens=OPENAI_MAX_OUTPUT_TOKENS,
+    )
+
+    print(
+        "OpenAI estimated max cost: "
+        f"${estimate['estimated_max_cost_usd']:.4f} "
+        f"({estimate['width']}x{estimate['height']}, "
+        f"{estimate['image_file_mb']:.2f} MB, "
+        f"~{estimate['estimated_input_tokens']} input tokens, "
+        f"max {estimate['max_output_tokens']} output tokens)"
+    )
+
+    if estimate["image_pixels"] > OPENAI_MAX_IMAGE_PIXELS:
+        raise ValueError(
+            "OpenAI call blocked: image is too large "
+            f"({estimate['image_pixels']:,} pixels > {OPENAI_MAX_IMAGE_PIXELS:,})."
+        )
+    if estimate["image_file_mb"] > OPENAI_MAX_IMAGE_FILE_MB:
+        raise ValueError(
+            "OpenAI call blocked: image file is too large "
+            f"({estimate['image_file_mb']:.2f} MB > {OPENAI_MAX_IMAGE_FILE_MB} MB)."
+        )
+    if estimate["estimated_max_cost_usd"] > OPENAI_MAX_ESTIMATED_CALL_COST_USD:
+        raise ValueError(
+            "OpenAI call blocked: estimated max cost "
+            f"${estimate['estimated_max_cost_usd']:.4f} exceeds "
+            f"${OPENAI_MAX_ESTIMATED_CALL_COST_USD:.4f}."
+        )
+
+    return estimate
+
+
+def response_output_text(response_json):
+    chunks = []
+
+    def walk(obj):
+        if isinstance(obj, dict):
+            if obj.get("type") in {"output_text", "text"} and isinstance(obj.get("text"), str):
+                chunks.append(obj["text"])
+            for value in obj.values():
+                walk(value)
+        elif isinstance(obj, list):
+            for value in obj:
+                walk(value)
+
+    walk(response_json.get("output", []))
+    if not chunks and isinstance(response_json.get("output_text"), str):
+        chunks.append(response_json["output_text"])
+    return "\n".join(chunks).strip()
+
+
+def parse_json_object_or_array(text):
+    text = text.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text)
+        text = re.sub(r"\s*```$", "", text)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start_candidates = [idx for idx in [text.find("{"), text.find("[")] if idx != -1]
+        if not start_candidates:
+            raise
+        start = min(start_candidates)
+        end = max(text.rfind("}"), text.rfind("]"))
+        return json.loads(text[start:end + 1])
+
+
+def validate_llm_table_rows(payload, expected_n_cols=EXPECTED_N_COLS):
+    rows = payload.get("rows") if isinstance(payload, dict) else payload
+    if not isinstance(rows, list):
+        raise ValueError("OpenAI response did not contain a JSON list of rows")
+
+    cleaned_rows = []
+    for row in rows:
+        if not isinstance(row, list):
+            raise ValueError("OpenAI response included a non-list row")
+        row = ["" if v is None else str(v).strip() for v in row]
+        if len(row) != expected_n_cols:
+            raise ValueError(f"OpenAI row has {len(row)} columns; expected {expected_n_cols}: {row}")
+        cleaned_rows.append(row)
+
+    raw_df = pd.DataFrame(cleaned_rows)
+    if raw_df.empty:
+        raise ValueError("OpenAI response returned no table rows")
+    if not raw_df.iloc[:, 0].astype(str).str.strip().eq(TOTAL_LABEL).any():
+        raise ValueError(f"OpenAI response did not include a '{TOTAL_LABEL}' row")
+    return raw_df
+
+
+def extract_raw_table_openai_vision(image_path):
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("Set OPENAI_API_KEY before using STEP6_OCR_MODE='openai_vision'")
+
+    prompt = f"""
+Extract the body rows from this Chinese NEA solar PV table image.
+
+Return only valid JSON, with this exact shape:
+{{"rows": [[...], [...]]}}
+
+Rules:
+- Include table body rows only, starting with "{TOTAL_LABEL}".
+- Exclude title text, unit text, and header rows.
+- Each row must have exactly {EXPECTED_N_COLS} string values.
+- Keep Chinese province names as Chinese.
+- Keep numeric values exactly as shown, including decimals.
+- Do not translate, summarize, add markdown, or add comments.
+- The column order is:
+  1. 省(区、市)
+  2. 新增并网容量 total
+  3. 新增并网容量 其中：集中式光伏电站
+  4. 新增并网容量 其中：分布式光伏
+  5. 新增并网容量 其中：户用光伏
+  6. 累计并网容量 total
+  7. 累计并网容量 其中：集中式光伏电站
+  8. 累计并网容量 其中：分布式光伏
+  9. 累计并网容量 其中：户用光伏
+""".strip()
+
+    guard_openai_vision_call(image_path, prompt)
+
+    payload = {
+        "model": OPENAI_VISION_MODEL,
+        "input": [{
+            "role": "user",
+            "content": [
+                {"type": "input_text", "text": prompt},
+                {
+                    "type": "input_image",
+                    "image_url": image_to_data_url(image_path),
+                    "detail": OPENAI_IMAGE_DETAIL,
+                },
+            ],
+        }],
+        "max_output_tokens": OPENAI_MAX_OUTPUT_TOKENS,
+    }
+
+    t0 = time.time()
+    response = requests.post(
+        OPENAI_RESPONSES_URL,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        json=payload,
+        timeout=120,
+    )
+    print("OpenAI vision API sec:", round(time.time() - t0, 2))
+    if response.status_code >= 400:
+        raise ValueError(f"OpenAI API error {response.status_code}: {response.text[:1000]}")
+
+    response_json = response.json()
+    raw_text = response_output_text(response_json)
+    if not raw_text:
+        raise ValueError("OpenAI response did not include output text")
+
+    log_path = OPENAI_RESPONSES_DIR / f"{Path(image_path).stem}_openai_vision_response.json"
+    log_path.write_text(
+        json.dumps({"response": response_json, "output_text": raw_text}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    print("saved OpenAI raw response:", log_path)
+
+    parsed = parse_json_object_or_array(raw_text)
+    raw_df = validate_llm_table_rows(parsed)
+    print("OpenAI vision rows:", len(raw_df))
+    return raw_df
+
+
+def extract_raw_table_from_image(image_path, ocr, mode=STEP6_OCR_MODE):
+    if mode == "openai_vision":
+        print("using OpenAI vision table extraction")
+        return extract_raw_table_openai_vision(image_path)
+    if mode == "direct_paddle":
+        try:
+            print("using direct PaddleOCR table reconstruction")
+            raw_df = extract_raw_table_direct_paddle(image_path, ocr)
+            print("direct PaddleOCR rows:", len(raw_df))
+            return raw_df
+        except Exception as e:
+            print("direct PaddleOCR failed; falling back to img2table:", e)
+            return extract_raw_table_img2table(image_path, ocr)
+    if mode == "img2table":
+        print("using img2table extraction")
+        return extract_raw_table_img2table(image_path, ocr)
+    raise ValueError(f"Unknown STEP6_OCR_MODE: {mode}")
+
+
 def find_total_row_and_start_col(raw_df, total_label=TOTAL_LABEL, max_search_cols=4):
     for col_idx in range(min(max_search_cols, raw_df.shape[1])):
         ser = raw_df[col_idx].astype(str).str.strip()
@@ -397,27 +847,393 @@ def autosize_worksheet(ws, max_width=35):
             max_len = max(max_len, len(val))
         ws.column_dimensions[col_letter].width = min(max_len + 2, max_width)
 
+
+def looks_like_pandas_excel_index_header(raw):
+    if raw.shape[0] < 2 or raw.shape[1] < EXPECTED_N_COLS + 1:
+        return False
+
+    header_vals = pd.to_numeric(
+        raw.iloc[0, 1:EXPECTED_N_COLS + 1],
+        errors="coerce",
+    )
+    if header_vals.isna().any():
+        return False
+    if header_vals.astype(int).tolist() != list(range(EXPECTED_N_COLS)):
+        return False
+
+    index_vals = pd.to_numeric(raw.iloc[1:min(len(raw), 8), 0], errors="coerce")
+    if index_vals.isna().any():
+        return False
+    return index_vals.astype(int).tolist() == list(range(len(index_vals)))
+
+
+def normalize_raw_excel_frame(raw):
+    raw = raw.copy()
+    if looks_like_pandas_excel_index_header(raw):
+        raw = raw.iloc[1:, 1:].reset_index(drop=True)
+    while raw.shape[1] < EXPECTED_N_COLS:
+        raw[raw.shape[1]] = pd.NA
+    return raw
+
+
+def normalize_legacy_sparse_capacity_frame(raw, year=None):
+    raw = normalize_raw_excel_frame(raw)
+    try:
+        year = int(float(year))
+    except Exception:
+        year = None
+
+    if year is None or year > 2021 or raw.empty:
+        return raw
+
+    numeric = raw.copy()
+    for col in range(1, min(raw.shape[1], EXPECTED_N_COLS)):
+        numeric[col] = raw[col].apply(to_float)
+
+    total_rows = numeric[numeric[0].astype(str).str.strip().eq(TOTAL_LABEL)]
+    if total_rows.empty:
+        return raw
+
+    total = total_rows.iloc[0]
+    sparse_legacy = (
+        raw.shape[1] >= EXPECTED_N_COLS
+        and pd.notna(total[1])
+        and numeric[2].isna().mean() >= 0.8
+        and numeric[3].isna().mean() >= 0.8
+        and numeric[4].isna().mean() >= 0.8
+        and pd.notna(total[5])
+        and pd.notna(total[6])
+        and pd.notna(total[7])
+        and float(total[1]) > float(total[5])
+    )
+    if not sparse_legacy:
+        return raw
+
+    fixed = pd.DataFrame(index=raw.index, columns=range(EXPECTED_N_COLS))
+    fixed[0] = raw[0]
+    fixed[1] = numeric[6]  # new total
+    fixed[2] = numeric[7]  # new utility/station
+    fixed[3] = numeric[6] - numeric[7]  # derived new distributed
+    fixed[4] = pd.NA
+    fixed[5] = numeric[1]  # cumulative total
+    fixed[6] = numeric[5]  # cumulative utility/station
+    fixed[7] = numeric[1] - numeric[5]  # derived cumulative distributed
+    fixed[8] = pd.NA
+    print("normalized legacy sparse cumulative-first capacity frame")
+    return fixed
+
+
+def repair_legacy_no_household_columns(clean, year, checkpoint):
+    try:
+        year = int(float(year))
+    except Exception:
+        return clean
+    checkpoint = str(checkpoint or "").strip().lower()
+
+    if year > 2021:
+        return clean
+
+    total_rows = clean[clean["province_cn"].astype(str).str.strip().eq(TOTAL_LABEL)]
+    if total_rows.empty:
+        return clean
+
+    total = total_rows.iloc[0]
+
+    if year <= 2020:
+        # Damaged legacy layout A:
+        # cum total landed in new total; cum utility landed in cum total;
+        # new total landed in cum utility; new utility landed in cum distributed.
+        sparse_new_cols = (
+            clean["new_capacity_utility_10kw"].isna().mean() >= 0.8
+            and clean["new_capacity_distributed_10kw"].isna().mean() >= 0.8
+        )
+        if (
+            sparse_new_cols
+            and pd.notna(total["new_capacity_total_10kw"])
+            and pd.notna(total["cum_capacity_total_10kw"])
+            and pd.notna(total["cum_capacity_utility_10kw"])
+            and total["new_capacity_total_10kw"] > total["cum_capacity_total_10kw"]
+        ):
+            old_cum_total = clean["new_capacity_total_10kw"].copy()
+            old_cum_utility = clean["cum_capacity_total_10kw"].copy()
+            old_new_total = clean["cum_capacity_utility_10kw"].copy()
+            old_new_utility = clean["cum_capacity_distributed_10kw"].copy()
+
+            clean["new_capacity_total_10kw"] = old_new_total
+            clean["new_capacity_utility_10kw"] = old_new_utility
+            clean["new_capacity_distributed_10kw"] = old_new_total - old_new_utility
+            clean["new_capacity_residential_10kw"] = pd.NA
+            clean["cum_capacity_total_10kw"] = old_cum_total
+            clean["cum_capacity_utility_10kw"] = old_cum_utility
+            clean["cum_capacity_distributed_10kw"] = old_cum_total - old_cum_utility
+            clean["cum_capacity_residential_10kw"] = pd.NA
+            print("repaired legacy cumulative-first capacity layout")
+            return clean
+
+        # Damaged legacy layout B:
+        # cum total/utility stayed in the new total/utility slots, while
+        # new total/utility followed them before curtailment columns.
+        if (
+            pd.notna(total["new_capacity_total_10kw"])
+            and pd.notna(total["new_capacity_utility_10kw"])
+            and pd.notna(total["new_capacity_distributed_10kw"])
+            and pd.notna(total["cum_capacity_total_10kw"])
+            and total["new_capacity_total_10kw"] > total["cum_capacity_total_10kw"] * 5
+            and total["new_capacity_utility_10kw"] > total["cum_capacity_total_10kw"] * 5
+        ):
+            old_cum_total = clean["new_capacity_total_10kw"].copy()
+            old_cum_utility = clean["new_capacity_utility_10kw"].copy()
+            old_new_total = clean["new_capacity_distributed_10kw"].copy()
+            old_new_utility = clean["cum_capacity_total_10kw"].copy()
+
+            clean["new_capacity_total_10kw"] = old_new_total
+            clean["new_capacity_utility_10kw"] = old_new_utility
+            clean["new_capacity_distributed_10kw"] = old_new_total - old_new_utility
+            clean["new_capacity_residential_10kw"] = pd.NA
+            clean["cum_capacity_total_10kw"] = old_cum_total
+            clean["cum_capacity_utility_10kw"] = old_cum_utility
+            clean["cum_capacity_distributed_10kw"] = old_cum_total - old_cum_utility
+            clean["cum_capacity_residential_10kw"] = pd.NA
+            print("repaired legacy cumulative-first capacity layout")
+            return clean
+
+        # Damaged legacy layout C, seen on image-extracted 2019 Q1:
+        # new total/utility are correct, then cum total/utility are next.
+        if (
+            pd.notna(total["new_capacity_total_10kw"])
+            and pd.notna(total["new_capacity_distributed_10kw"])
+            and pd.notna(total["new_capacity_residential_10kw"])
+            and pd.notna(total["cum_capacity_total_10kw"])
+            and total["cum_capacity_total_10kw"] < total["new_capacity_total_10kw"]
+            and total["new_capacity_distributed_10kw"] > total["new_capacity_total_10kw"] * 5
+            and total["new_capacity_residential_10kw"] > total["new_capacity_total_10kw"] * 5
+        ):
+            old_new_total = clean["new_capacity_total_10kw"].copy()
+            old_new_utility = clean["new_capacity_utility_10kw"].copy()
+            old_cum_total = clean["new_capacity_distributed_10kw"].copy()
+            old_cum_utility = clean["new_capacity_residential_10kw"].copy()
+
+            clean["new_capacity_total_10kw"] = old_new_total
+            clean["new_capacity_utility_10kw"] = old_new_utility
+            clean["new_capacity_distributed_10kw"] = old_new_total - old_new_utility
+            clean["new_capacity_residential_10kw"] = pd.NA
+            clean["cum_capacity_total_10kw"] = old_cum_total
+            clean["cum_capacity_utility_10kw"] = old_cum_utility
+            clean["cum_capacity_distributed_10kw"] = old_cum_total - old_cum_utility
+            clean["cum_capacity_residential_10kw"] = pd.NA
+            print("repaired legacy cumulative-first capacity layout")
+            return clean
+
+    if checkpoint != "q3":
+        return clean
+
+    cum_distributed = clean["cum_capacity_distributed_10kw"]
+    cum_residential = clean["cum_capacity_residential_10kw"]
+    distributed_missing = cum_distributed.isna() | cum_distributed.eq(0)
+    residential_present = cum_residential.notna() & ~cum_residential.eq(0)
+
+    if distributed_missing.mean() >= 0.8 and residential_present.mean() >= 0.8:
+        clean["cum_capacity_distributed_10kw"] = clean["cum_capacity_residential_10kw"]
+        clean["cum_capacity_residential_10kw"] = pd.NA
+
+    return clean
+
+
+def save_run_summary(run_rows, out_path=LOGS_DIR / "run_summary.csv"):
+    run_summary_df = pd.DataFrame(run_rows)
+    run_summary_df.to_csv(out_path, index=False, encoding="utf-8-sig")
+    return run_summary_df
+
+
+def load_previous_run_summary(out_path=LOGS_DIR / "run_summary.csv"):
+    if not out_path.exists():
+        raise FileNotFoundError(
+            f"{out_path} does not exist. Run Step 10 once with "
+            "RERUN_ONLY_FAILED_FROM_RUN_SUMMARY=False first."
+        )
+    df = pd.read_csv(out_path)
+    required_cols = {"source_page_url", "status"}
+    missing = required_cols - set(df.columns)
+    if missing:
+        raise ValueError(f"{out_path} is missing columns: {sorted(missing)}")
+    return df
+
+
+def upsert_run_row(run_rows, row):
+    url = row["source_page_url"]
+    for idx, existing in enumerate(run_rows):
+        if existing.get("source_page_url") == url:
+            run_rows[idx] = row
+            return
+    run_rows.append(row)
+
+
+def is_numeric_cell(x):
+    s = "" if x is None else str(x).strip()
+    s = normalize_numeric_cell_text(s)
+    return s not in {"", ".", "-", "-."}
+
+
+def normalize_numeric_cell_text(x):
+    s = "" if x is None else str(x).strip()
+    s = re.sub(r"\s+", "", s)
+    return re.sub(r"[^\d\.\-]", "", s)
+
+
+def subtract_numeric_text(left, right, require_nonnegative=False):
+    left_value = to_float(normalize_numeric_cell_text(left))
+    right_value = to_float(normalize_numeric_cell_text(right))
+    if pd.isna(left_value) or pd.isna(right_value):
+        return ""
+    difference = left_value - right_value
+    if require_nonnegative and difference < 0:
+        return ""
+    return f"{difference:g}"
+
+
+def infer_inline_table_layout(table):
+    header_text = []
+    for tr in table.find_all("tr")[:8]:
+        cells = [c.get_text(" ", strip=True) for c in tr.find_all(["th", "td"])]
+        if not cells:
+            continue
+        if match_known_province(cells[0]) is not None:
+            break
+        # NEA pages often wrap the real table inside an outer table whose
+        # first row contains the whole article text. Ignore that wrapper row
+        # so the layout decision is based on the actual table header.
+        if len(cells) <= 12:
+            header_text.append(" ".join(cells))
+    header_text = " ".join(header_text)
+
+    cumulative_pos = header_text.find("累计")
+    new_pos = header_text.find("新增")
+    if cumulative_pos != -1 and new_pos != -1 and cumulative_pos < new_pos:
+        return "cumulative_first_total_utility"
+    return "standard"
+
+
+def normalize_inline_table_row(cells, table_layout="standard"):
+    cells = ["" if c is None else str(c).strip() for c in cells]
+    if not cells:
+        return None
+
+    label = normalize_province_name(cells[0])
+    if match_known_province(label) is None:
+        return None
+
+    vals = cells[1:]
+    if table_layout == "cumulative_first_total_utility" and len(vals) >= 4:
+        # Older NEA tables list cumulative capacity first, then new capacity.
+        # Some pages append curtailment columns after these four capacity values.
+        cumulative_total = normalize_numeric_cell_text(vals[0])
+        cumulative_utility = normalize_numeric_cell_text(vals[1])
+        new_total = normalize_numeric_cell_text(vals[2]) or "0.0"
+        new_utility = normalize_numeric_cell_text(vals[3]) or "0.0"
+        vals = [
+            new_total,
+            new_utility,
+            subtract_numeric_text(new_total, new_utility, require_nonnegative=True),
+            "",
+            cumulative_total,
+            cumulative_utility,
+            subtract_numeric_text(cumulative_total, cumulative_utility),
+            "",
+        ]
+        required_numeric_idxs = [0, 1, 4, 5, 6]
+    elif len(vals) == 4:
+        vals = [
+            vals[0],
+            "",
+            "",
+            "",
+            vals[1],
+            vals[2],
+            vals[3],
+            "",
+        ]
+        required_numeric_idxs = [0, 4, 5, 6]
+        vals = [normalize_numeric_cell_text(v) for v in vals]
+    elif len(vals) == 6:
+        vals = vals[:3] + [""] + vals[3:] + [""]
+        required_numeric_idxs = list(range(8))
+        vals = [normalize_numeric_cell_text(v) or "0.0" for v in vals]
+    elif len(vals) == 7:
+        # Older inline NEA pages publish new household capacity, but not
+        # cumulative household capacity. Keep the fixed 9-column schema.
+        required_numeric_idxs = list(range(7))
+        vals = [normalize_numeric_cell_text(v) for v in vals] + [""]
+    else:
+        required_numeric_idxs = list(range(8))
+        vals = [normalize_numeric_cell_text(v) or "0.0" for v in vals]
+
+    if len(vals) != 8:
+        return None
+    if not all(is_numeric_cell(vals[idx]) for idx in required_numeric_idxs):
+        return None
+    if vals[7] and not is_numeric_cell(vals[7]):
+        return None
+
+    return [label] + vals
+
+
 def extract_inline_table_from_html(url: str):
     r = requests.get(url, headers=REQUEST_HEADERS, timeout=30)
     r.raise_for_status()
     r.encoding = r.apparent_encoding
     soup = BeautifulSoup(r.text, "html.parser")
+
+    best_rows = []
+    best_layout = None
+    for table in soup.find_all("table"):
+        table_layout = infer_inline_table_layout(table)
+        table_rows = []
+        for tr in table.find_all("tr"):
+            cells = [c.get_text(" ", strip=True) for c in tr.find_all(["th", "td"])]
+            row = normalize_inline_table_row(cells, table_layout=table_layout)
+            if row is not None:
+                table_rows.append(row)
+        is_better = len(table_rows) > len(best_rows)
+        is_cumulative_tie = (
+            len(table_rows) == len(best_rows)
+            and table_layout == "cumulative_first_total_utility"
+            and best_layout != "cumulative_first_total_utility"
+        )
+        if is_better or is_cumulative_tie:
+            best_rows = table_rows
+            best_layout = table_layout
+
+    if best_rows:
+        print(
+            f"{INLINE_TABLE_PARSER_VERSION}: parsed {len(best_rows)} rows "
+            f"from HTML table ({best_layout})"
+        )
+        return pd.DataFrame(best_rows)
+
     lines = [x.strip() for x in soup.get_text("\n").splitlines() if x.strip()]
-    # find first total row
     start_idx = lines.index("总计")
     rows = []
     i = start_idx
-    while i + 8 < len(lines):
+    while i < len(lines):
         label = lines[i]
-        vals = lines[i+1:i+9]
-        if len(vals) < 8:
+        if match_known_province(label) is None:
             break
-        # stop once we leave the table body
-        cleaned_vals = [re.sub(r"[^\d\.\-]", "", v) for v in vals]
-        if not all(v != "" for v in cleaned_vals):
+
+        next_label_idx = None
+        for j in range(i + 1, min(i + 12, len(lines))):
+            if match_known_province(lines[j]) is not None:
+                next_label_idx = j
+                break
+        vals = lines[i + 1:next_label_idx] if next_label_idx else lines[i + 1:i + 9]
+
+        row = normalize_inline_table_row([label] + vals)
+        if row is None:
             break
-        rows.append([label] + vals)
-        i += 9
+        rows.append(row)
+        if next_label_idx is None:
+            break
+        i = next_label_idx
+    print(f"{INLINE_TABLE_PARSER_VERSION}: parsed {len(rows)} rows from page text fallback")
     return pd.DataFrame(rows)
 
 
@@ -505,9 +1321,13 @@ download_manifest_df = pd.DataFrame(download_manifest_rows)
 download_manifest_df.to_csv(LOGS_DIR / "download_manifest.csv", index=False, encoding="utf-8-sig")
 
 
-#5) initialize ocr (in theory, it doesn't like being run twice in single session, but probably fine eitherway)
-ocr = Img2TablePaddleOCR(lang=OCR_LANG)
-print("OCR initialized")
+#5) initialize ocr (only needed for local Paddle/img2table modes)
+if STEP6_OCR_MODE in {"direct_paddle", "img2table"}:
+    ocr = Img2TablePaddleOCR(lang=OCR_LANG)
+    print("OCR initialized")
+else:
+    ocr = None
+    print(f"Skipping local OCR initialization for STEP6_OCR_MODE={STEP6_OCR_MODE}")
 
 
 #6) Pick one page and run OCR to raw xlsx
@@ -525,26 +1345,17 @@ if page_meta["n_images"] > 0:
     print(stitched_path)
     print(stitched_path.exists())
     t0 = time.time()
-    doc = Img2TableImage(str(stitched_path))
-    tables = doc.extract_tables(
-        ocr=ocr,
-        implicit_rows=True,
-        implicit_columns=True,
-        borderless_tables=False,
-        min_confidence=MIN_CONFIDENCE,
-    )
-    print("n_tables:", len(tables))
+    raw_df = extract_raw_table_from_image(stitched_path, ocr)
     print("elapsed sec:", round(time.time() - t0, 2))
-    table = tables[0]
-    raw_df = table.df.copy()
 else:
     t0 = time.time()
     raw_df = extract_inline_table_from_html(page_meta["source_page_url"])
+    raw_df = normalize_legacy_sparse_capacity_frame(raw_df, page_meta["year"])
     print("inline html rows:", len(raw_df))
     print("elapsed sec:", round(time.time() - t0, 2))
 
 raw_table_xlsx = RAW_TABLES_DIR / f"{page_slug}_raw.xlsx"
-raw_df.to_excel(raw_table_xlsx)
+raw_df.to_excel(raw_table_xlsx, index=False, header=False)
 
 print("saved raw table:", raw_table_xlsx)
 print(raw_df.head())
@@ -554,7 +1365,7 @@ print(raw_df.head())
 
 #7) Clean the raw xlsx and build review workbook
 
-raw = pd.read_excel(raw_table_xlsx, header=None)
+raw = normalize_raw_excel_frame(pd.read_excel(raw_table_xlsx, header=None))
 
 year = page_meta["year"]
 checkpoint = page_meta["checkpoint"]
@@ -578,6 +1389,7 @@ if page_meta["n_images"] > 0:
     body.columns = expected_cn
 else:
     # inline HTML pages already come out as 9 clean columns
+    raw = normalize_raw_excel_frame(raw)
     body = raw.iloc[:, :EXPECTED_N_COLS].copy()
     body.columns = expected_cn
     # no OCR header to inspect here, so just use expected labels as the preview
@@ -596,6 +1408,7 @@ for c in expected_cn[1:]:
     body[c] = body[c].apply(to_float)
 
 clean = body.rename(columns=dict(zip(expected_cn, EXPECTED_EN)))
+clean = repair_legacy_no_household_columns(clean, year, checkpoint)
 clean["province_translation_missing"] = clean["province_en"].isna()
 
 clean = clean[
@@ -711,11 +1524,58 @@ print("formatted:", review_xlsx)
 
 #10) batch loop once one page looks good
 
-run_rows = []
+batch_items = list(enumerate(page_results))
+force_rerun_urls = set(FORCE_RERUN_URLS)
 
-for PAGE_IDX in range(len(page_results)):
+if RERUN_ONLY_FAILED_FROM_RUN_SUMMARY:
+    previous_run_summary_df = load_previous_run_summary()
+    failed_urls = set(
+        previous_run_summary_df.loc[
+            previous_run_summary_df["status"].astype(str).str.lower().eq("failed"),
+            "source_page_url",
+        ].dropna()
+    )
+    selected_urls = failed_urls | force_rerun_urls
+    batch_items = [
+        (idx, page_meta)
+        for idx, page_meta in enumerate(page_results)
+        if page_meta["source_page_url"] in selected_urls
+    ]
+    run_rows = previous_run_summary_df.to_dict("records")
+    print(
+        "Rerun-only-failed mode:",
+        f"{len(batch_items)} URLs selected from {LOGS_DIR / 'run_summary.csv'}",
+    )
+elif force_rerun_urls:
+    batch_items = [
+        (idx, page_meta)
+        for idx, page_meta in enumerate(page_results)
+        if page_meta["source_page_url"] in force_rerun_urls
+    ]
+    if (LOGS_DIR / "run_summary.csv").exists():
+        run_rows = load_previous_run_summary().to_dict("records")
+    else:
+        run_rows = []
+    print("Force-rerun mode:", f"{len(batch_items)} URLs selected")
+else:
+    run_rows = []
+
+if STEP6_OCR_MODE == "openai_vision":
+    n_openai_image_pages = sum(1 for _, r in batch_items if r["n_images"] > 0)
+    if n_openai_image_pages > OPENAI_MAX_BATCH_IMAGE_CALLS:
+        raise ValueError(
+            "OpenAI batch blocked: "
+            f"{n_openai_image_pages} image pages would be sent, "
+            f"limit is {OPENAI_MAX_BATCH_IMAGE_CALLS}."
+        )
+    print(
+        "OpenAI batch guard: "
+        f"{n_openai_image_pages} image calls allowed "
+        f"(limit {OPENAI_MAX_BATCH_IMAGE_CALLS})"
+    )
+
+for batch_pos, (PAGE_IDX, page_meta) in enumerate(batch_items, start=1):
     try:
-        page_meta = page_results[PAGE_IDX]
         page_id = f"{page_meta['publish_date']}_{safe_slug(page_meta['title'])[:80]}"
         page_slug = safe_slug(page_id)
         stitched_path = STITCHED_DIR / f"{page_slug}_stitched.jpg"
@@ -730,19 +1590,9 @@ for PAGE_IDX in range(len(page_results)):
         # ============================================================
         if page_meta["n_images"] > 0:
             # image-based table -> OCR route
-            doc = Img2TableImage(str(stitched_path))
-            tables = doc.extract_tables(
-                ocr=ocr,
-                implicit_rows=True,
-                implicit_columns=True,
-                borderless_tables=False,
-                min_confidence=MIN_CONFIDENCE,
-            )
-            if len(tables) == 0:
-                raise ValueError("No tables returned by OCR")
-            table = tables[0]
-            table.df.to_excel(raw_table_xlsx)   # keep same style as before
-            raw = pd.read_excel(raw_table_xlsx, header=None)
+            raw_df = extract_raw_table_from_image(stitched_path, ocr)
+            raw_df.to_excel(raw_table_xlsx, index=False, header=False)
+            raw = normalize_raw_excel_frame(pd.read_excel(raw_table_xlsx, header=None))
             data_start_idx, start_col = find_total_row_and_start_col(
                 raw,
                 total_label=TOTAL_LABEL,
@@ -768,6 +1618,10 @@ for PAGE_IDX in range(len(page_results)):
         else:
             # inline HTML table -> direct text parsing route
             inline_df = extract_inline_table_from_html(page_meta["source_page_url"]).copy()
+            inline_df = normalize_legacy_sparse_capacity_frame(
+                inline_df,
+                page_meta["year"],
+            )
             if inline_df.shape[1] != EXPECTED_N_COLS:
                 raise ValueError(
                     f"Inline HTML parser returned {inline_df.shape[1]} columns; expected {EXPECTED_N_COLS}"
@@ -775,8 +1629,8 @@ for PAGE_IDX in range(len(page_results)):
             # save a simple raw version for reference
             inline_df.to_excel(raw_table_xlsx, index=False, header=False)
             # this is what goes in the raw_ocr sheet
-            raw = inline_df.copy()
-            body = inline_df.copy()
+            raw = normalize_raw_excel_frame(inline_df.copy())
+            body = raw.copy()
             body.columns = expected_cn
             # no OCR header on inline pages, so just show expected headers
             ocr_header_preview = pd.DataFrame({
@@ -794,6 +1648,11 @@ for PAGE_IDX in range(len(page_results)):
         for c in expected_cn[1:]:
             body[c] = body[c].apply(to_float)
         clean = body.rename(columns=dict(zip(expected_cn, EXPECTED_EN)))
+        clean = repair_legacy_no_household_columns(
+            clean,
+            page_meta["year"],
+            page_meta["checkpoint"],
+        )
         clean["province_translation_missing"] = clean["province_en"].isna()
         clean = clean[
             ["province_cn", "province_en"]
@@ -840,7 +1699,7 @@ for PAGE_IDX in range(len(page_results)):
             clean.to_excel(writer, sheet_name="clean", index=False)
             review_df.to_excel(writer, sheet_name="clean_review", index=False)
         clean.to_csv(clean_csv, index=False, encoding="utf-8-sig")
-        run_rows.append({
+        upsert_run_row(run_rows, {
             "source_page_url": page_meta["source_page_url"],
             "title": page_meta["title"],
             "publish_date": page_meta["publish_date"],
@@ -854,7 +1713,7 @@ for PAGE_IDX in range(len(page_results)):
             "notes": "",
         })
     except Exception as e:
-        run_rows.append({
+        upsert_run_row(run_rows, {
             "source_page_url": page_meta["source_page_url"],
             "title": page_meta["title"],
             "publish_date": page_meta["publish_date"],
@@ -868,7 +1727,14 @@ for PAGE_IDX in range(len(page_results)):
             "notes": str(e),
         })
         print("FAILED:", e)
+    finally:
+        run_summary_df = save_run_summary(run_rows)
+        status_counts = run_summary_df["status"].value_counts().to_dict() if not run_summary_df.empty else {}
+        print(
+            "updated run summary:",
+            LOGS_DIR / "run_summary.csv",
+            f"(rerun {batch_pos}/{len(batch_items)}, summary rows {len(run_summary_df)}, {status_counts})",
+        )
 
-run_summary_df = pd.DataFrame(run_rows)
-run_summary_df.to_csv(LOGS_DIR / "run_summary.csv", index=False, encoding="utf-8-sig")
+run_summary_df = save_run_summary(run_rows)
 run_summary_df

@@ -1,0 +1,7 @@
+﻿period,year,checkpoint,area_key,province_cn,province_en,category,scraped_10kw,scraped_gw,source_page_url,source_file,dataset,reference_area,reference_gw
+201906,2019.0,h1,,内蒙古*,,Total,978.0,9.78,https://www.nea.gov.cn/2019-08/23/c_138330885.htm,2019-08-23_2019年上半年光伏发电建设运行情况---国家能源局_clean.csv,scraped,,
+201906,2019.0,h1,,新疆(含兵团),,Total,1066.0,10.66,https://www.nea.gov.cn/2019-08/23/c_138330885.htm,2019-08-23_2019年上半年光伏发电建设运行情况---国家能源局_clean.csv,scraped,,
+201906,2019.0,h1,,贵州*,,Total,178.0,1.78,https://www.nea.gov.cn/2019-08/23/c_138330885.htm,2019-08-23_2019年上半年光伏发电建设运行情况---国家能源局_clean.csv,scraped,,
+201906,2019.0,h1,,内蒙古*,,Utility-scale,956.0,9.56,https://www.nea.gov.cn/2019-08/23/c_138330885.htm,2019-08-23_2019年上半年光伏发电建设运行情况---国家能源局_clean.csv,scraped,,
+201906,2019.0,h1,,新疆(含兵团),,Utility-scale,1061.0,10.61,https://www.nea.gov.cn/2019-08/23/c_138330885.htm,2019-08-23_2019年上半年光伏发电建设运行情况---国家能源局_clean.csv,scraped,,
+201906,2019.0,h1,,贵州*,,Utility-scale,160.0,1.6,https://www.nea.gov.cn/2019-08/23/c_138330885.htm,2019-08-23_2019年上半年光伏发电建设运行情况---国家能源局_clean.csv,scraped,,

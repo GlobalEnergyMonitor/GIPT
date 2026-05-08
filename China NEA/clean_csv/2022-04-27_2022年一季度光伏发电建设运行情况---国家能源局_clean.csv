@@ -1,0 +1,34 @@
+﻿province_cn,province_en,new_capacity_total_10kw,new_capacity_utility_10kw,new_capacity_distributed_10kw,new_capacity_residential_10kw,cum_capacity_total_10kw,cum_capacity_utility_10kw,cum_capacity_distributed_10kw,cum_capacity_residential_10kw,province_translation_missing
+总计,Total,1321.0,434.1,887.0,254.7,31797.9,20237.1,11560.8,,False
+北京,Beijing,9.9,0.3,9.6,0.3,89.7,5.1,84.6,,False
+天津,Tianjin,4.7,1.4,3.2,0.2,180.2,118.8,61.4,,False
+河北,Hebei,180.7,81.3,99.5,61.9,3102.1,1740.1,1362.0,,False
+山西,Shanxi,23.1,10.0,13.1,5.8,1480.8,1111.8,369.0,,False
+山东,Shandong,150.0,15.0,135.0,58.0,3493.4,1024.0,2469.4,,False
+内蒙古,Inner Mongolia,18.1,14.1,4.0,0.6,1425.0,1319.2,105.8,,False
+辽宁,Liaoning,16.1,0.5,15.6,0.9,497.1,321.4,175.6,,False
+吉林,Jilin,19.3,9.3,10.0,0.1,365.2,275.1,90.1,,False
+黑龙江,Heilongjiang,10.0,7.6,2.4,0.1,422.2,330.0,92.2,,False
+上海,Shanghai,4.3,0.1,4.2,0.2,172.5,24.1,148.4,,False
+江苏,Jiangsu,122.2,5.8,116.4,9.7,2038.4,947.1,1091.3,,False
+浙江,Zhejiang,163.9,24.0,139.9,1.4,1981.8,577.2,1404.6,,False
+安徽,Anhui,64.4,38.3,26.1,29.2,1773.9,989.8,784.0,,False
+福建,Fujian,28.3,0.0,28.3,7.0,305.7,39.2,266.6,,False
+江西,Jiangxi,83.3,7.8,75.4,6.0,942.2,568.9,373.3,,False
+河南,Henan,82.7,0.0,82.7,62.5,1638.3,625.8,1012.5,,False
+湖北,Hubei,66.7,55.0,11.7,1.5,1019.4,767.5,251.9,,False
+湖南,Hunan,25.8,12.0,13.8,2.4,479.4,234.3,245.2,,False
+重庆,Chongqing,1.6,0.1,1.6,0.2,65.0,54.2,10.9,,False
+四川,Sichuan,0.8,0.0,0.8,0.4,196.7,169.0,27.7,,False
+陕西,Shaanxi,26.8,16.0,10.8,0.6,1329.6,1107.9,221.7,,False
+甘肃,Gansu,14.4,8.4,6.0,0.1,1141.8,1058.7,83.1,,False
+青海,Qinghai,45.3,45.0,0.3,0.0,1656.0,1639.8,16.2,,False
+宁夏,Ningxia,5.2,3.0,2.2,0.0,1389.2,1306.4,82.8,,False
+新疆,Xinjiang,0.2,0.2,0.0,0.0,1272.2,1255.6,16.6,,False
+新疆兵团,Xinjiang Production and Construction Corps,0.0,0.0,0.0,0.0,77.2,77.2,0.0,,False
+西藏,Tibet,0.0,0.0,0.0,,138.7,136.5,2.2,,False
+广东,Guangdong,79.3,9.8,69.5,4.5,1099.5,531.3,568.1,,False
+广西,Guangxi,55.2,50.3,4.9,0.5,333.1,275.7,57.4,,False
+海南,Hainan,6.3,6.4,0.0,0.4,147.5,128.1,19.4,,False
+贵州,Guizhou,0.0,0.0,0.0,0.1,1137.0,1117.6,19.4,,False
+云南,Yunnan,12.4,12.4,0.0,0.2,407.1,359.9,47.2,,False
