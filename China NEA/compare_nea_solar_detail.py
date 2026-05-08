@@ -14,10 +14,11 @@ if hasattr(sys.stdout, "reconfigure"):
 
 BASE_DIR = Path(__file__).resolve().parent
 REFERENCE_CSV = BASE_DIR / "NEA_solar_detail.csv"
-SCRAPED_DIR = BASE_DIR / "clean_csv"
-LOGS_DIR = BASE_DIR / "logs"
-REPORTS_DIR = BASE_DIR / "comparison_reports"
-RA_CROSSCHECK_DIR = BASE_DIR / "RA crosscheck"
+OUTPUTS_DIR = BASE_DIR / "outputs"
+SCRAPED_DIR = OUTPUTS_DIR / "clean_csv"
+LOGS_DIR = OUTPUTS_DIR / "logs"
+REPORTS_DIR = OUTPUTS_DIR / "comparison_reports"
+RA_CROSSCHECK_DIR = OUTPUTS_DIR / "RA crosscheck"
 RUN_SUMMARY_CSV = LOGS_DIR / "run_summary.csv"
 PAGE_SUMMARY_CSV = LOGS_DIR / "page_summary_scraped.csv"
 

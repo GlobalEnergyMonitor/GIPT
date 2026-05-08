@@ -12,18 +12,20 @@ The core source is the National Energy Administration (NEA) provincial solar PV 
 
 ## Key Outputs
 
+Generated pipeline artifacts are grouped under `outputs/` to keep the project root tidy.
+
 The most important compiled output is:
 
-`RA crosscheck/scraped_wide.csv`
+`outputs/RA crosscheck/scraped_wide.csv`
 
 This is the wide-format dataset used by the beta visualization page. Rows are area/category pairs, and period columns are formatted as `YYYYMM`.
 
 Other useful outputs include:
 
-- `clean_csv/`: cleaned per-source-page CSV files.
-- `review_workbooks/`: Excel workbooks for manual review of each extraction.
-- `logs/run_summary.csv`: status log for batch extraction runs.
-- `RA crosscheck/nea_solar_detail_crosscheck.xlsx`: comparison workbook for checking scraped data against the reference file.
+- `outputs/clean_csv/`: cleaned per-source-page CSV files.
+- `outputs/review_workbooks/`: Excel workbooks for manual review of each extraction.
+- `outputs/logs/run_summary.csv`: status log for batch extraction runs.
+- `outputs/RA crosscheck/nea_solar_detail_crosscheck.xlsx`: comparison workbook for checking scraped data against the reference file.
 
 ## Beta Visualization
 

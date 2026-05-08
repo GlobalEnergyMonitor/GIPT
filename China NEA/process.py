@@ -6,7 +6,7 @@ This notebook-style script extracts provincial solar PV tables from NEA source p
 The workflow has four main parts.
 First, it scrapes each NEA article page to capture metadata, table image URLs, and whether the page is image-based or an inline HTML table.
 Second, it downloads and vertically stitches image tables so split website images become one OCR-ready source image. Inline HTML pages skip this image step.
-Third, it extracts raw table rows. Image pages can use OpenAI Vision, direct PaddleOCR reconstruction, or img2table; inline pages use the HTML/text parser. OpenAI Vision calls are guarded by size/cost checks and their raw responses are written to logs/openai_responses for audit.
+Third, it extracts raw table rows. Image pages can use OpenAI Vision, direct PaddleOCR reconstruction, or img2table; inline pages use the HTML/text parser. OpenAI Vision calls are guarded by size/cost checks and their raw responses are written to outputs/logs/openai_responses for audit.
 Finally, it cleans and reviews the extraction: applies the fixed schema, handles legacy pre-household table layouts, translates province names, converts OCR/text numbers into numeric values, and writes clean CSVs plus review workbooks.
 
 The blocks are split up on purpose. A new user should be able to run them one by one, inspect the outputs at each stage, and stop wherever something looks off. That matters here because NEA tables are similar but not perfectly identical across years and checkpoints, and older tables use different column layouts.
@@ -29,7 +29,7 @@ Step 8 builds a human-review version of the table. This includes English labels,
 
 Step 9 adds light workbook formatting to make the review file easier to read.
 
-Step 10 is the batch loop. It can run all pages, rerun only URLs that failed according to logs/run_summary.csv, or force rerun specific URLs. It updates run_summary.csv after each page so progress and failures are visible during long runs.
+Step 10 is the batch loop. It can run all pages, rerun only URLs that failed according to outputs/logs/run_summary.csv, or force rerun specific URLs. It updates run_summary.csv after each page so progress and failures are visible during long runs.
 
 '''
 ####
@@ -91,15 +91,16 @@ from img2table.tables.processing import common as img2table_common
 # ============================================================
 BASE_DIR = Path(r"C:\Users\james\Documents\GitHub\GIPT\China NEA")
 
-RAW_IMAGES_DIR = BASE_DIR / "raw_images"
-STITCHED_DIR = BASE_DIR / "stitched"
-RAW_TABLES_DIR = BASE_DIR / "raw_tables_xlsx"
-REVIEW_DIR = BASE_DIR / "review_workbooks"
-CLEAN_CSV_DIR = BASE_DIR / "clean_csv"
-LOGS_DIR = BASE_DIR / "logs"
+OUTPUTS_DIR = BASE_DIR / "outputs"
+RAW_IMAGES_DIR = OUTPUTS_DIR / "raw_images"
+STITCHED_DIR = OUTPUTS_DIR / "stitched"
+RAW_TABLES_DIR = OUTPUTS_DIR / "raw_tables_xlsx"
+REVIEW_DIR = OUTPUTS_DIR / "review_workbooks"
+CLEAN_CSV_DIR = OUTPUTS_DIR / "clean_csv"
+LOGS_DIR = OUTPUTS_DIR / "logs"
 OPENAI_RESPONSES_DIR = LOGS_DIR / "openai_responses"
 
-for d in [BASE_DIR, RAW_IMAGES_DIR, STITCHED_DIR, RAW_TABLES_DIR, REVIEW_DIR, CLEAN_CSV_DIR, LOGS_DIR, OPENAI_RESPONSES_DIR]:
+for d in [BASE_DIR, OUTPUTS_DIR, RAW_IMAGES_DIR, STITCHED_DIR, RAW_TABLES_DIR, REVIEW_DIR, CLEAN_CSV_DIR, LOGS_DIR, OPENAI_RESPONSES_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 # ============================================================
@@ -121,7 +122,7 @@ URLS = [
 # It should contain column 'url' or 'source_page_url'.
 URLS_CSV = BASE_DIR / "nea_provincial_pv_source_pages_structured_2016_2025.csv"
 
-# Step 10 toggle. When True, only rerun URLs marked failed in logs/run_summary.csv.
+# Step 10 toggle. When True, only rerun URLs marked failed in outputs/logs/run_summary.csv.
 # Existing successful rows are kept in run_summary.csv and failed rows are replaced
 # as they are retried.
 RERUN_ONLY_FAILED_FROM_RUN_SUMMARY = False

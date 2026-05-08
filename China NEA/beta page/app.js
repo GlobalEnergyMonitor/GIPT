@@ -1,4 +1,4 @@
-﻿const DATA_PATH = "../RA%20crosscheck/scraped_wide.csv";
+﻿const DATA_PATH = "../outputs/RA%20crosscheck/scraped_wide.csv";
 
 const EXCLUDED_PROVINCE_ROWS = new Set([
   "Total",
@@ -901,3 +901,4 @@ function formatCell(value, col, customFormatters) {
   if (typeof value === "number") return value.toFixed(1);
   return value;
 }
+
