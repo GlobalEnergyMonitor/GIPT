@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tracking renewables tripling and fossil fuels phaseout</title>
+  <title>Tracking renewables tripling</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,28 +11,41 @@
 
   <link rel="stylesheet" href="./style.css" />
 </head>
-<body>
-  <main class="page">
+<body class="page-locked">
+  <div id="password-gate" class="password-gate" role="dialog" aria-modal="true" aria-labelledby="password-gate-title">
+    <form id="password-gate-form" class="password-gate-card">
+      <h2 id="password-gate-title">Private preview</h2>
+      <p>Enter the preview password to view this page.</p>
+      <div class="password-gate-row">
+        <label for="password-gate-input">Password</label>
+        <input id="password-gate-input" type="password" autocomplete="current-password" />
+        <button type="submit">Enter</button>
+      </div>
+      <p id="password-gate-error" class="password-gate-error" aria-live="polite"></p>
+    </form>
+  </div>
+
+  <main class="page" aria-hidden="true">
     <article class="article">
 
       <header class="article-header">
-        <h1>Tracking renewables tripling and fossil fuels phaseout</h1>
+        <h1>Tracking renewables tripling</h1>
         <p class="subtitle">
-          In 2023, at COP28, governments agreed to triple global renewable capacity by 2030.
+          At the UN’s COP28 climate change conference in December 2023, governments agreed a goal to triple global renewable capacity by 2030.
         </p>
       </header>
 
       <section class="content-block prose">
         <p>
-          Tripling renewables capacity to at least 11,000 GW by 2030 keeps a pathway for limiting global warming to 1.5C within reach, according to independent analyses from the International Renewable Energy Agency (IRENA) and the International Energy Agency (IEA).
+          According to independent analysis by the International Renewable Energy Agency (IRENA) and the International Energy Agency (IEA), reaching at least 11,000 gigawatts (GW) of renewable capacity by 2030 could deliver up to two-thirds of the emissions reductions needed by 2050 to keep a 1.5°C pathway within reach.
         </p>
 
         <p>
-          Tripling renewables is possibly the most powerful action the world can take within the next decade to transition away from fossil fuels, accounting for up to two-thirds of emissions reductions by 2050.
+          Renewable additions have continued to rise since the COP28 agreement, with record deployment for both solar and wind in 2025 pointing to clear momentum. But renewables deployment still needs to increase year on year through 2030 to stay on track.
         </p>
 
         <p>
-          Global Energy Monitor’s tracking of energy facilities across the sector provides a detailed view of progress toward this critical goal.
+          Global Energy Monitor’s facility-level tracking across the energy sector provides a detailed view of progress toward this critical goal.
         </p>
       </section>
 
@@ -49,7 +62,7 @@
 
       <section class="content-block prose">
         <p>
-          More than 5,500 utility-scale projects are set to come online before 2030, totaling 1,240 GW — equal to about 70% of the capacity additions needed for tripling.
+          According to GEM data, more than 5,500 utility-scale renewables projects are set to come online before 2030, totaling 1,240 GW — equal to about 20% of the capacity additions needed for tripling.
         </p>
 
         <p>
@@ -69,7 +82,7 @@
         </p>
       </section>
 
-      <section class="content-block flourish-block">
+      <section class="content-block flourish-block flourish-block--tight-after">
         <div class="flourish-wrap">
           <div class="flourish-embed flourish-chart" data-src="story/3145644?1931971">
             <script src="https://public.flourish.studio/resources/embed.js"></script>
@@ -90,18 +103,11 @@
         </p>
 
         <p>
-          Still, independent assessments show that increases of tripling, or greater, are needed for a 1.5C-aligned pathway, especially in the largest economies. These countries would need to scale renewables by roughly 2.5 to 3.1 times by 2030.
+          Still, <a href="https://ca1-clm.edcdn.com/assets/Tripling-renewables-by-2030.pdf?v=1707761112">independent</a> <a href="https://ca1-clm.edcdn.com/publications/Setting-1.5%C2%B0C-compatible-wind-and-solar-targets_sept2024_1page.pdf?v=1730205044">assessments</a> <a href="https://iopscience.iop.org/article/10.1088/1748-9326/ad3284/meta">show</a> that increases of tripling, or greater, are needed for a 1.5C-aligned pathway, especially in the largest economies. These countries would need to scale renewables by roughly 2.5 to 3.1 times by 2030.
         </p>
 
         <p>
-          So far, some of the richest economies are falling short. Even if all in-development renewable capacity in the G7 and EU were completed by 2030, total capacity would increase by only 1.8 times in the G7 and 2.4 times in the EU.
-        </p>
-      </section>
-
-      <section class="content-block prose">
-        <h2>Tracked projects and the remaining gap</h2>
-        <p>
-          This chart compares renewable capacity already operating, projects under construction, pre-construction and announced capacity, and the remaining gap to a tripling pathway.
+          So far, some of the richest economies are falling short. Even if all in-development renewable capacity in the G7 and EU were completed by 2030, total capacity would increase by only 1.8 times in the G7 and 2.2 times in the EU.
         </p>
       </section>
 
@@ -109,11 +115,8 @@
         <div class="d3-card">
           <div class="d3-chart-header">
             <h3 class="d3-chart-title">
-              Global tripling goal missed even if all 25,000 renewable projects tracked by GEM come online by 2030
+              Renewable capacity by development status, in gigawatts (GW)
             </h3>
-            <p class="d3-chart-subtitle">
-              Square area denotes renewable capacity by development status
-            </p>
           </div>
 
           <div class="d3-controls">
@@ -121,7 +124,66 @@
             <select id="d3-country-select"></select>
           </div>
 
+          <div id="d3-explainer" class="d3-explainer" aria-live="polite"></div>
+
           <div id="renewable-d3-chart"></div>
+        </div>
+      </section>
+
+      <section class="content-block plotly-block" aria-label="Capacity by technology">
+        <h2 class="plotly-section-title">Tracking the utility-scale solar and wind pipeline against the tripling target</h2>
+
+        <div class="plotly-controls">
+          <label for="plotly-technology-select">Select technology:</label>
+          <select id="plotly-technology-select" disabled>
+            <option>Loading...</option>
+          </select>
+          <label class="risk-toggle" for="risk-adjusted-toggle">
+            <input type="checkbox" id="risk-adjusted-toggle" />
+            Show risk-adjusted projection
+          </label>
+        </div>
+
+        <div id="plotly-technology-note" class="plotly-technology-note" aria-live="polite"></div>
+
+        <div class="plotly-chart-grid">
+          <div class="plotly-chart-group">
+            <h3 class="plotly-figure-subtitle">Global capacity in development by status, in gigawatts (GW)</h3>
+            <div id="plotly-cumulative-chart" class="plotly-chart plotly-chart--compact" aria-label="Cumulative in-development capacity chart"></div>
+            <p id="plotly-cumulative-meta" class="plotly-meta"></p>
+          </div>
+
+          <div class="plotly-chart-group">
+            <h3 class="plotly-figure-subtitle">Annual capacity additions, historical and projected by development status, in gigawatts (GW)</h3>
+            <div id="plotly-annual-chart" class="plotly-chart" aria-label="Annual capacity additions chart"></div>
+            <p id="plotly-annual-meta" class="plotly-meta">2026-2030 capacity additions consistent with tripling derived from the IEA’s Net Zero Emissions by 2050 pathway, 2024 edition.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="content-block">
+        <h2 class="plotly-section-title">Fossil fuel phaseout</h2>
+        <p class="section-copy">
+          Equally critical to achieving a net-zero energy system is the rapid phase out of fossil fuels, with unabated coal plants being phased out by 2030 in advanced economies and by 2040 globally, while unabated natural gas declines by over 80% by 2040, according to the IEA.
+        </p>
+        <div class="fossil-flourish-grid">
+          <div class="flourish-wrap">
+            <div class="flourish-embed flourish-chart" data-src="visualisation/28413310">
+              <script src="https://public.flourish.studio/resources/embed.js"></script>
+              <noscript>
+                <img src="https://public.flourish.studio/visualisation/28413310/thumbnail" width="100%" alt="Fossil fuel phaseout visualization" />
+              </noscript>
+            </div>
+          </div>
+
+          <div class="flourish-wrap">
+            <div class="flourish-embed flourish-chart" data-src="visualisation/28413295">
+              <script src="https://public.flourish.studio/resources/embed.js"></script>
+              <noscript>
+                <img src="https://public.flourish.studio/visualisation/28413295/thumbnail" width="100%" alt="Fossil fuel phaseout visualization" />
+              </noscript>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -129,6 +191,788 @@
   </main>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   <script src="./tripling-d3.js"></script>
+
+  <script>
+(function () {
+  // Soft client-side gate only. Edit this value to change the preview password.
+  const PAGE_PASSWORD = "tripling";
+
+  const gate = document.getElementById("password-gate");
+  const form = document.getElementById("password-gate-form");
+  const input = document.getElementById("password-gate-input");
+  const error = document.getElementById("password-gate-error");
+
+  function unlockPage() {
+    document.body.classList.remove("page-locked");
+    document.querySelector(".page")?.removeAttribute("aria-hidden");
+    if (gate) {
+      gate.setAttribute("hidden", "");
+      gate.style.display = "none";
+    }
+    window.setTimeout(() => window.dispatchEvent(new Event("resize")), 0);
+  }
+
+  input?.focus();
+
+  form?.addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    if (!input) return;
+
+    if (input.value.trim() === PAGE_PASSWORD) {
+      unlockPage();
+      return;
+    }
+
+    if (error) {
+      error.textContent = "That password did not match.";
+    }
+    input.value = "";
+    input.focus();
+  });
+})();
+  </script>
+
+  <script>
+(function () {
+  document.addEventListener("DOMContentLoaded", function () {
+    const IEA_PATH = "./iea.csv";
+    const INDEV_ANNUAL_PATH = "./indev_annual.csv";
+    const INDEV_TOTAL_PATH = "./indev_total.csv";
+    const TRIPLING_ADDITIONS_PATH = "./tripling_additions.csv";
+    const RISK_STATUS_PATH = "./risk_pipeline/simulated_annual_additions_by_status_date_known_summary.csv";
+
+    const TECH_LABELS = {
+      "Utility-scale solar": "Utility-scale solar",
+      "Onshore wind": "Onshore wind",
+      "Offshore wind": "Offshore wind"
+    };
+
+    // Edit this copy to change the figure text for each selected technology.
+    const TECHNOLOGY_NARRATIVES = {
+      "Utility-scale solar": [
+        "GEM’s data on utility-scale solar projects indicates a total capacity in development of 2,300 GW globally, roughly equivalent to the total additional deployment required in the remaining five years to 2030 that is consistent with tripling.",
+        "However, only a quarter of this total is earmarked for completion by 2030. By simulating project-level outcomes in the current pipeline, accounting for cancellation risk, delays, and typical delivery timing, GEM estimates a risk-adjusted range of utility-scale solar deployment through 2030 falling below the required trajectory for tripling.",
+        "Distributed solar capacity will contribute to the total solar capacity deployment but is unlikely to fully infill short falls in utility-scale buildout."
+      ],
+      "Onshore wind": [
+        "GEM’s data on onshore wind projects indicates a total capacity in development of 1500 GW globally, slightly in excess of the total additional deployment required in the remaining five years to 2030 consistent with tripling.",
+        "However, less than a quarter of this total is earmarked for completion by 2030. By simulating project-level outcomes in the current pipeline, accounting for cancellation risk, delays, and typical delivery timing, GEM estimates a risk-adjusted range of onshore deployment through 2030 falling below the required trajectory for tripling.",
+      ],
+      "Offshore wind": [
+        "GEM’s data on offshore wind projects indicates a total capacity in development of 1000 GW, over five times the total additional deployment required in the remaining five years to 2030 consistent with tripling.",
+        "Around one-fifth of this total is earmarked for completion by 2030. However, offshore wind projects show higher levels of project cancellation and delay compared to other technologies.",
+        "Yet even when accounting for these cancellation risk, delays, and longer project development timelines, GEM’s simulated project-level outcome estimates a risk-adjusted range of offshore deployment through 2030 exceeding the required trajectory for tripling."
+      ]
+    };
+
+    const STATUS_ORDER = ["construction", "pre-construction", "announced"];
+
+    const STATUS_LABELS = {
+      "construction": "Construction",
+      "pre-construction": "Pre-construction",
+      "announced": "Announced"
+    };
+
+    const CATEGORY_ORDER = ["Construction", "Pre-construction", "Announced", "Total"];
+
+    const CHART_COLORS = {
+      historical: "#173f67",
+      construction: "#3b82f6",
+      "pre-construction": "#93c5fd",
+      announced: "#dbeafe",
+      known: "#3b82f6",
+      total: "#dbeafe",
+      triplingPathway: "#b91c1c",
+      riskKnown: "#2563eb",
+      riskUnknown: "#f59e0b"
+    };
+
+    const technologySelect = document.getElementById("plotly-technology-select");
+    const riskToggle = document.getElementById("risk-adjusted-toggle");
+    const technologyNote = document.getElementById("plotly-technology-note");
+
+    if (!technologySelect) {
+      console.error("Missing #plotly-technology-select. Check that the Plotly chart HTML block exists before this script.");
+      return;
+    }
+
+    if (!document.getElementById("plotly-cumulative-chart")) {
+      console.error("Missing #plotly-cumulative-chart.");
+      return;
+    }
+
+    if (!document.getElementById("plotly-annual-chart")) {
+      console.error("Missing #plotly-annual-chart.");
+      return;
+    }
+
+    let ieaRows = [];
+    let annualRows = [];
+    let totalRows = [];
+    let triplingAdditionRows = [];
+    let riskStatusRows = [];
+
+    function cleanText(value) {
+      return String(value ?? "").trim();
+    }
+
+    function normaliseStatus(value) {
+      return cleanText(value).toLowerCase();
+    }
+
+    function technologyFromRow(row) {
+      return cleanText(row.Technology || row.technology || row["Unnamed: 0"] || row[""]);
+    }
+
+    function statusFromTotalRow(row) {
+      return cleanText(row.index || row.Status || row.status || row["Unnamed: 0"]);
+    }
+
+    function yearFromIeaRow(row) {
+      return Number(row.Year ?? row.year ?? row["Unnamed: 0"] ?? row[""]);
+    }
+
+    async function loadOptionalCsv(path) {
+      try {
+        return await d3.csv(path);
+      } catch (error) {
+        console.warn(`Could not load ${path}. Risk-adjusted toggle data may be unavailable.`, error);
+        return [];
+      }
+    }
+
+    function updateTechnologyNarrative(technology) {
+      if (!technologyNote) return;
+
+      const paragraphs = TECHNOLOGY_NARRATIVES[technology] || [];
+      technologyNote.replaceChildren();
+
+      paragraphs.forEach(text => {
+        const paragraph = document.createElement("p");
+        paragraph.textContent = text;
+        technologyNote.appendChild(paragraph);
+      });
+    }
+
+    function getIeaTechColumns() {
+      if (!ieaRows.length) return [];
+
+      return Object.keys(ieaRows[0])
+        .filter(col => col !== "Unnamed: 0")
+        .filter(col => col !== "")
+        .filter(col => col.toLowerCase() !== "year")
+        .filter(col => Object.prototype.hasOwnProperty.call(TECH_LABELS, col));
+    }
+
+    function getAnnualYearColumns() {
+      if (!annualRows.length) return [];
+
+      return Object.keys(annualRows[0])
+        .filter(col => !["", "Unnamed: 0", "Technology", "technology", "Status", "status"].includes(col))
+        .map(col => ({
+          col,
+          year: Number(String(col).replace(".0", ""))
+        }))
+        .filter(d => Number.isFinite(d.year))
+        .sort((a, b) => a.year - b.year);
+    }
+
+    function buildCumulativeData(technology) {
+      const rows = totalRows.filter(row => technologyFromRow(row) === technology);
+      const byStatus = new Map();
+
+      rows.forEach(row => {
+        const rawStatus = statusFromTotalRow(row);
+        const statusKey = rawStatus.toLowerCase();
+
+        const label =
+          statusKey === "construction" ? "Construction" :
+          statusKey === "pre-construction" ? "Pre-construction" :
+          statusKey === "announced" ? "Announced" :
+          statusKey === "total" ? "Total" :
+          rawStatus;
+
+        const known = Number(row["pre-2030"] ?? row.pre2030 ?? row.known ?? 0);
+        const unknown = Number(row.unknown ?? row.Unknown ?? 0);
+
+        const safeKnown = Number.isFinite(known) ? known : 0;
+        const safeUnknown = Number.isFinite(unknown) ? unknown : 0;
+
+        byStatus.set(label, {
+          known: safeKnown,
+          unknown: safeUnknown,
+          total: safeKnown + safeUnknown
+        });
+      });
+
+      return CATEGORY_ORDER.map(category => ({
+        category,
+        known: byStatus.get(category)?.known ?? 0,
+        unknown: byStatus.get(category)?.unknown ?? 0,
+        total: byStatus.get(category)?.total ?? 0
+      }));
+    }
+
+    function buildAnnualData(technology) {
+      const historical = ieaRows
+        .map(row => ({
+          year: yearFromIeaRow(row),
+          value: Number(row[technology])
+        }))
+        .filter(d => Number.isFinite(d.year) && Number.isFinite(d.value))
+        .sort((a, b) => a.year - b.year);
+
+      const annualTechRows = annualRows.filter(row => technologyFromRow(row) === technology);
+      const annualYearColumns = getAnnualYearColumns();
+
+      const statusMaps = new Map();
+      STATUS_ORDER.forEach(status => statusMaps.set(status, new Map()));
+
+      annualTechRows.forEach(row => {
+        const status = normaliseStatus(row.Status || row.status);
+        if (!statusMaps.has(status)) return;
+
+        annualYearColumns.forEach(({ col, year }) => {
+          const value = Number(row[col]);
+          if (!Number.isFinite(value)) return;
+
+          const map = statusMaps.get(status);
+          map.set(year, (map.get(year) || 0) + value);
+        });
+      });
+
+      const allYears = [...new Set([
+        ...historical.map(d => d.year),
+        ...STATUS_ORDER.flatMap(status => [...statusMaps.get(status).keys()])
+      ])].sort((a, b) => a - b);
+
+      return { historical, statusMaps, allYears };
+    }
+
+    function buildTriplingAdditionData(technology) {
+      return triplingAdditionRows
+        .map(row => ({
+          year: Number(row.Year ?? row.year ?? row[""]),
+          value: Number(row[technology])
+        }))
+        .filter(d => Number.isFinite(d.year) && Number.isFinite(d.value))
+        .sort((a, b) => a.year - b.year);
+    }
+
+    function sumTriplingAdditionsTo2030(technology) {
+      return buildTriplingAdditionData(technology)
+        .filter(d => d.year >= 2026 && d.year <= 2030)
+        .reduce((sum, d) => sum + d.value, 0);
+    }
+
+    function buildRiskAnnualStatusData(technology) {
+      const selectedTechnology = technology.toLowerCase();
+
+      return riskStatusRows
+        .map(row => ({
+          year: Number(row.year),
+          technology: cleanText(row.model_technology).toLowerCase(),
+          status: normaliseStatus(row.status),
+          dateKnown: cleanText(row.date_known).toLowerCase(),
+          value: Number(row.p50_mw) / 1000
+        }))
+        .filter(d =>
+          d.technology === selectedTechnology &&
+          d.year >= 2026 &&
+          d.year <= 2030 &&
+          STATUS_ORDER.includes(d.status) &&
+          ["known", "unknown"].includes(d.dateKnown) &&
+          Number.isFinite(d.value)
+        )
+        .sort((a, b) => a.year - b.year);
+    }
+
+    function buildRiskCumulativeData(technology) {
+      const selectedTechnology = technology.toLowerCase();
+      const byStatus = new Map();
+
+      riskStatusRows.forEach(row => {
+        const year = Number(row.year);
+        const rowTechnology = cleanText(row.model_technology).toLowerCase();
+        const status = normaliseStatus(row.status);
+        const dateKnown = cleanText(row.date_known).toLowerCase();
+        const value = Number(row.p50_mw) / 1000;
+
+        if (
+          rowTechnology !== selectedTechnology ||
+          year < 2026 ||
+          year > 2030 ||
+          !STATUS_ORDER.includes(status) ||
+          !["known", "unknown"].includes(dateKnown) ||
+          !Number.isFinite(value)
+        ) {
+          return;
+        }
+
+        if (!byStatus.has(status)) {
+          byStatus.set(status, { known: 0, unknown: 0 });
+        }
+
+        byStatus.get(status)[dateKnown] += value;
+      });
+
+      const statusRows = CATEGORY_ORDER
+        .filter(category => category !== "Total")
+        .map(category => {
+          const statusKey =
+            category === "Construction" ? "construction" :
+            category === "Pre-construction" ? "pre-construction" :
+            "announced";
+          const values = byStatus.get(statusKey) || { known: 0, unknown: 0 };
+
+          return {
+            category,
+            known: values.known,
+            unknown: values.unknown,
+            total: values.known + values.unknown
+          };
+        });
+
+      const totalKnown = statusRows.reduce((sum, row) => sum + row.known, 0);
+      const totalUnknown = statusRows.reduce((sum, row) => sum + row.unknown, 0);
+
+      return [
+        ...statusRows,
+        {
+          category: "Total",
+          known: totalKnown,
+          unknown: totalUnknown,
+          total: totalKnown + totalUnknown
+        }
+      ];
+    }
+
+    function drawCumulativeChart(technology) {
+      const riskMode = Boolean(riskToggle?.checked) && riskStatusRows.length > 0;
+      const data = riskMode ? buildRiskCumulativeData(technology) : buildCumulativeData(technology);
+      const scaleData = buildCumulativeData(technology);
+      const triplingWindowTotal = sumTriplingAdditionsTo2030(technology);
+
+      const categories = data.map(d => d.category);
+      const totalValues = data.map(d => d.total);
+      const knownValues = data.map(d => d.known);
+      const unknownValues = data.map(d => d.unknown);
+
+      const xMax = Math.max(
+        1,
+        ...scaleData.map(d => d.total),
+        ...totalValues,
+        triplingWindowTotal
+      ) * 1.15;
+      const triplingLabelAnchor = triplingWindowTotal > xMax * 0.72 ? "right" : "left";
+      const triplingLabelShift = triplingLabelAnchor === "right" ? -8 : 8;
+
+      const traces = [
+        {
+          type: "bar",
+          orientation: "h",
+          y: categories,
+          x: totalValues,
+          name: riskMode ? "Unknown start year, risk-adjusted p50" : "Unknown commissioning year",
+          marker: {
+            color: CHART_COLORS.total,
+            line: { color: "rgba(23, 63, 103, 0.18)", width: 1 }
+          },
+          hovertemplate: riskMode
+            ? "%{y}<br>Total risk-adjusted p50: %{x:.1f} GW<extra></extra>"
+            : "%{y}<br>Total incl. unknown year: %{x:.1f} GW<extra></extra>"
+        },
+        {
+          type: "bar",
+          orientation: "h",
+          y: categories,
+          x: knownValues,
+          name: riskMode ? "Known start year, risk-adjusted p50" : "Pre-2030 commissioning",
+          marker: {
+            color: CHART_COLORS.known
+          },
+          customdata: unknownValues,
+          hovertemplate: riskMode
+            ? "%{y}<br>Known start year p50: %{x:.1f} GW<br>Unknown start year p50: %{customdata:.1f} GW<extra></extra>"
+            : "%{y}<br>Pre-2030 commissioning: %{x:.1f} GW<br>Unknown start year: %{customdata:.1f} GW<extra></extra>"
+        }
+      ];
+
+      const layout = {
+        font: {
+          family: "Plus Jakarta Sans, sans-serif",
+          color: "#17233a"
+        },
+        paper_bgcolor: "#ffffff",
+        plot_bgcolor: "#ffffff",
+        height: 320,
+        margin: { l: 138, r: 24, t: 48, b: 54 },
+        barmode: "overlay",
+        bargap: 0.16,
+        hovermode: "closest",
+        legend: {
+          orientation: "h",
+          x: 0,
+          xanchor: "left",
+          y: 1.04,
+          yanchor: "bottom",
+          font: { size: 12 }
+        },
+        xaxis: {
+          title: "GW",
+          range: [0, xMax],
+          gridcolor: "#e5e7eb",
+          zeroline: false
+        },
+        yaxis: {
+          categoryorder: "array",
+          categoryarray: ["Total", "Announced", "Pre-construction", "Construction"]
+        },
+        shapes: Number.isFinite(triplingWindowTotal) && triplingWindowTotal > 0
+          ? [
+              {
+                type: "line",
+                xref: "x",
+                yref: "paper",
+                x0: triplingWindowTotal,
+                x1: triplingWindowTotal,
+                y0: 0,
+                y1: 1,
+                line: {
+                  color: CHART_COLORS.triplingPathway,
+                  width: 2,
+                  dash: "dash"
+                }
+              }
+            ]
+          : [],
+        annotations: Number.isFinite(triplingWindowTotal) && triplingWindowTotal > 0
+          ? [
+              {
+                x: triplingWindowTotal,
+                y: 0.98,
+                xref: "x",
+                yref: "paper",
+                text: "2026-2030 additions<br>consistent with tripling",
+                showarrow: false,
+                xanchor: triplingLabelAnchor,
+                yanchor: "top",
+                xshift: triplingLabelShift,
+                align: triplingLabelAnchor,
+                font: {
+                  size: 12,
+                  color: CHART_COLORS.triplingPathway
+                }
+              }
+            ]
+          : []
+      };
+
+      Plotly.react("plotly-cumulative-chart", traces, layout, {
+        responsive: true,
+        displaylogo: false
+      });
+
+    }
+
+    function drawAnnualChart(technology) {
+      const { historical, statusMaps, allYears } = buildAnnualData(technology);
+      const triplingAdditions = buildTriplingAdditionData(technology);
+      const riskAnnualStatus = buildRiskAnnualStatusData(technology);
+      const riskMode = Boolean(riskToggle?.checked) && riskAnnualStatus.length > 0;
+
+      if (!allYears.length && !triplingAdditions.length && !riskAnnualStatus.length) {
+        Plotly.purge("plotly-annual-chart");
+        return;
+      }
+
+      const chartYears = [...new Set([
+        ...allYears,
+        ...triplingAdditions.map(d => d.year),
+        ...riskAnnualStatus.map(d => d.year)
+      ])].sort((a, b) => a - b);
+
+      const historicalMap = new Map(historical.map(d => [d.year, d.value]));
+      const triplingAdditionMap = new Map(triplingAdditions.map(d => [d.year, d.value]));
+
+      const riskKnownStatusMaps = new Map();
+      STATUS_ORDER.forEach(status => riskKnownStatusMaps.set(status, new Map()));
+      const riskUnknownMap = new Map();
+
+      riskAnnualStatus.forEach(d => {
+        if (d.dateKnown === "known") {
+          const map = riskKnownStatusMaps.get(d.status);
+          map.set(d.year, (map.get(d.year) || 0) + d.value);
+        } else {
+          riskUnknownMap.set(d.year, (riskUnknownMap.get(d.year) || 0) + d.value);
+        }
+      });
+
+      const historicalValues = chartYears.map(year => historicalMap.get(year) || 0);
+      const constructionValues = chartYears.map(year => statusMaps.get("construction").get(year) || 0);
+      const preConstructionValues = chartYears.map(year => statusMaps.get("pre-construction").get(year) || 0);
+      const announcedValues = chartYears.map(year => statusMaps.get("announced").get(year) || 0);
+      const triplingAdditionValues = chartYears.map(year =>
+        triplingAdditionMap.has(year) ? triplingAdditionMap.get(year) : null
+      );
+      const riskKnownConstructionValues = chartYears.map(year =>
+        riskKnownStatusMaps.get("construction").has(year) ? riskKnownStatusMaps.get("construction").get(year) : null
+      );
+      const riskKnownPreConstructionValues = chartYears.map(year =>
+        riskKnownStatusMaps.get("pre-construction").has(year) ? riskKnownStatusMaps.get("pre-construction").get(year) : null
+      );
+      const riskKnownAnnouncedValues = chartYears.map(year =>
+        riskKnownStatusMaps.get("announced").has(year) ? riskKnownStatusMaps.get("announced").get(year) : null
+      );
+      const riskUnknownValues = chartYears.map(year =>
+        riskUnknownMap.has(year) ? riskUnknownMap.get(year) : null
+      );
+
+      const totalsByYear = chartYears.map((year, i) =>
+        historicalValues[i] +
+        constructionValues[i] +
+        preConstructionValues[i] +
+        announcedValues[i]
+      );
+
+      const riskTotalsByYear = chartYears.map((year, i) =>
+        (riskKnownConstructionValues[i] || 0) +
+        (riskKnownPreConstructionValues[i] || 0) +
+        (riskKnownAnnouncedValues[i] || 0) +
+        (riskUnknownValues[i] || 0)
+      );
+
+      const yMax = Math.max(
+        1,
+        ...totalsByYear,
+        ...riskTotalsByYear,
+        ...triplingAdditions.map(d => d.value),
+        ...riskAnnualStatus.map(d => d.value)
+      ) * 1.15;
+
+      const defaultBarTraces = [
+        {
+          type: "bar",
+          x: chartYears,
+          y: historicalValues,
+          name: "Historical additions",
+          offsetgroup: "pipeline",
+          marker: { color: CHART_COLORS.historical },
+          hovertemplate: "%{x}: %{y:.1f} GW<extra>Historical additions</extra>"
+        },
+        {
+          type: "bar",
+          x: chartYears,
+          y: constructionValues,
+          name: STATUS_LABELS.construction,
+          offsetgroup: "pipeline",
+          marker: { color: CHART_COLORS.construction },
+          hovertemplate: "%{x}: %{y:.1f} GW<extra>Construction</extra>"
+        },
+        {
+          type: "bar",
+          x: chartYears,
+          y: preConstructionValues,
+          name: STATUS_LABELS["pre-construction"],
+          offsetgroup: "pipeline",
+          marker: { color: CHART_COLORS["pre-construction"] },
+          hovertemplate: "%{x}: %{y:.1f} GW<extra>Pre-construction</extra>"
+        },
+        {
+          type: "bar",
+          x: chartYears,
+          y: announcedValues,
+          name: STATUS_LABELS.announced,
+          offsetgroup: "pipeline",
+          marker: { color: CHART_COLORS.announced },
+          hovertemplate: "%{x}: %{y:.1f} GW<extra>Announced</extra>"
+        }
+      ];
+
+      const riskBarTraces = [
+        {
+          type: "bar",
+          x: chartYears,
+          y: historicalValues,
+          name: "Historical additions",
+          marker: { color: CHART_COLORS.historical },
+          hovertemplate: "%{x}: %{y:.1f} GW<extra>Historical additions</extra>"
+        },
+        {
+          type: "bar",
+          x: chartYears,
+          y: riskKnownConstructionValues,
+          name: "Construction, known start year p50",
+          marker: { color: CHART_COLORS.construction },
+          hovertemplate: "%{x}: %{y:.1f} GW<extra>Construction, known start year p50</extra>"
+        },
+        {
+          type: "bar",
+          x: chartYears,
+          y: riskKnownPreConstructionValues,
+          name: "Pre-construction, known start year p50",
+          marker: { color: CHART_COLORS["pre-construction"] },
+          hovertemplate: "%{x}: %{y:.1f} GW<extra>Pre-construction, known start year p50</extra>"
+        },
+        {
+          type: "bar",
+          x: chartYears,
+          y: riskKnownAnnouncedValues,
+          name: "Announced, known start year p50",
+          marker: { color: CHART_COLORS.announced },
+          hovertemplate: "%{x}: %{y:.1f} GW<extra>Announced, known start year p50</extra>"
+        },
+        {
+          type: "bar",
+          x: chartYears,
+          y: riskUnknownValues,
+          name: "Unknown start year, risk-adjusted p50",
+          marker: {
+            color: CHART_COLORS.riskUnknown,
+            line: { color: "rgba(23, 63, 103, 0.3)", width: 1 }
+          },
+          hovertemplate: "%{x}: %{y:.1f} GW<extra>Unknown start year, risk-adjusted p50</extra>"
+        },
+      ];
+
+      const traces = [
+        ...(riskMode ? riskBarTraces : defaultBarTraces),
+        {
+          type: "scatter",
+          mode: "lines+markers",
+          x: chartYears,
+          y: triplingAdditionValues,
+          name: "Tripling pathway additions",
+          line: {
+            color: CHART_COLORS.triplingPathway,
+            width: 2.5,
+            dash: "dash"
+          },
+          marker: {
+            color: CHART_COLORS.triplingPathway,
+            size: 6
+          },
+          connectgaps: false,
+          hovertemplate: "%{x}: %{y:.1f} GW<extra>Tripling pathway additions</extra>"
+        }
+      ];
+
+      const layout = {
+        font: {
+          family: "Plus Jakarta Sans, sans-serif",
+          color: "#17233a"
+        },
+        paper_bgcolor: "#ffffff",
+        plot_bgcolor: "#ffffff",
+        margin: { l: 64, r: 20, t: 58, b: 58 },
+        barmode: "stack",
+        bargap: 0.22,
+        bargroupgap: 0.08,
+        hovermode: "x unified",
+        legend: {
+          orientation: "h",
+          x: 0,
+          xanchor: "left",
+          y: 1.04,
+          yanchor: "bottom",
+          font: { size: 12 }
+        },
+        xaxis: {
+          tickmode: "linear",
+          dtick: 5,
+          showgrid: false,
+          zeroline: false
+        },
+        yaxis: {
+          title: "GW",
+          range: [0, yMax],
+          gridcolor: "#e5e7eb",
+          zeroline: false
+        }
+      };
+
+      Plotly.react("plotly-annual-chart", traces, layout, {
+        responsive: true,
+        displaylogo: false
+      });
+
+    }
+
+    function updatePlotlyCharts() {
+      const technology = technologySelect.value;
+      if (!technology) return;
+
+      updateTechnologyNarrative(technology);
+      drawCumulativeChart(technology);
+      drawAnnualChart(technology);
+    }
+
+    riskToggle?.addEventListener("change", updatePlotlyCharts);
+
+    async function initPlotlyCapacityExplorer() {
+      try {
+        if (!window.d3) {
+          throw new Error("D3 is not loaded. Add the D3 script before this Plotly block.");
+        }
+
+        if (!window.Plotly) {
+          throw new Error("Plotly is not loaded.");
+        }
+
+        const [iea, annual, total, triplingAdditions, riskStatus] = await Promise.all([
+          d3.csv(IEA_PATH),
+          d3.csv(INDEV_ANNUAL_PATH),
+          d3.csv(INDEV_TOTAL_PATH),
+          d3.csv(TRIPLING_ADDITIONS_PATH),
+          loadOptionalCsv(RISK_STATUS_PATH)
+        ]);
+
+        ieaRows = iea;
+        annualRows = annual;
+        totalRows = total;
+        triplingAdditionRows = triplingAdditions;
+        riskStatusRows = riskStatus;
+
+        console.log("IEA rows:", ieaRows.length, ieaRows[0]);
+        console.log("Annual rows:", annualRows.length, annualRows[0]);
+        console.log("Total rows:", totalRows.length, totalRows[0]);
+        console.log("Tripling additions rows:", triplingAdditionRows.length, triplingAdditionRows[0]);
+        console.log("Risk status rows:", riskStatusRows.length, riskStatusRows[0]);
+
+        const technologies = getIeaTechColumns();
+
+        if (!technologies.length) {
+          throw new Error(
+            `No matching technology columns found in iea.csv. Columns found: ${Object.keys(ieaRows[0] || {}).join(", ")}`
+          );
+        }
+
+        technologySelect.innerHTML = "";
+
+        technologies.forEach(tech => {
+          const option = document.createElement("option");
+          option.value = tech;
+          option.textContent = TECH_LABELS[tech] || tech;
+          technologySelect.appendChild(option);
+        });
+
+        technologySelect.disabled = false;
+        technologySelect.value = technologies[0];
+
+        technologySelect.addEventListener("change", updatePlotlyCharts);
+
+        updatePlotlyCharts();
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    initPlotlyCapacityExplorer();
+  });
+})();
+  </script>
 </body>
 </html>
