@@ -1,0 +1,44 @@
+{
+  "Global": {
+    "construction": { "total": 542, "operating": 329 },
+    "preConstruction": { "total": 1993, "operating": 698 },
+    "announced": { "total": 1414, "operating": 325 },
+    "triplingGap": 6600
+  },
+  "Europe": {
+    "construction": { "total": 210, "operating": 130 },
+    "preConstruction": { "total": 720, "operating": 260 },
+    "announced": { "total": 510, "operating": 170 },
+    "triplingGap": 2400
+  },
+  "Near target test": {
+    "construction": { "total": 380, "operating": 240 },
+    "preConstruction": { "total": 980, "operating": 410 },
+    "announced": { "total": 620, "operating": 180 },
+    "triplingGap": 850
+  },
+  "Gap-heavy test": {
+    "construction": { "total": 140, "operating": 90 },
+    "preConstruction": { "total": 280, "operating": 110 },
+    "announced": { "total": 180, "operating": 40 },
+    "triplingGap": 3200
+  },
+  "Pipeline-heavy test": {
+    "construction": { "total": 460, "operating": 260 },
+    "preConstruction": { "total": 2400, "operating": 760 },
+    "announced": { "total": 1900, "operating": 430 },
+    "triplingGap": 1800
+  },
+  "Small system test": {
+    "construction": { "total": 55, "operating": 35 },
+    "preConstruction": { "total": 120, "operating": 50 },
+    "announced": { "total": 90, "operating": 18 },
+    "triplingGap": 260
+  },
+  "Very large test": {
+    "construction": { "total": 980, "operating": 620 },
+    "preConstruction": { "total": 3100, "operating": 980 },
+    "announced": { "total": 2300, "operating": 540 },
+    "triplingGap": 8200
+  }
+}

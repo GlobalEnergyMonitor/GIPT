@@ -1,0 +1,25 @@
+geography_key,technology,cancel_multiplier,delay_multiplier,remaining_time_multiplier
+China,utility-scale solar,0.5,0.7,0.8
+China,onshore wind,0.75,0.7,0.8
+China,offshore wind,0.75,0.8,0.8
+China,hydropower,0.5,0.7,0.8
+Africa,utility-scale solar,1,1,1
+Africa,onshore wind,1,1,1
+Africa,offshore wind,1,1,1
+Africa,hydropower,1,1,1
+Americas,utility-scale solar,1,1,1
+Americas,onshore wind,1,1,1
+Americas,offshore wind,1,1,1
+Americas,hydropower,1,1,1
+Asia,utility-scale solar,1,1,1
+Asia,onshore wind,1,1,1
+Asia,offshore wind,1,1,1
+Asia,hydropower,1,1,1
+Europe,utility-scale solar,1,1,1
+Europe,onshore wind,1,1,1
+Europe,offshore wind,1,1,1
+Europe,hydropower,1,1,1
+Oceania,utility-scale solar,1,1,1
+Oceania,onshore wind,1,1,1
+Oceania,offshore wind,1,1,1
+Oceania,hydropower,1,1,1
