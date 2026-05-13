@@ -1,0 +1,103 @@
+{
+  "Global": {
+    "construction": {
+      "pre2030": 317,
+      "unknown": 531
+    },
+    "preConstruction": {
+      "pre2030": 597,
+      "unknown": 1850
+    },
+    "announced": {
+      "pre2030": 326,
+      "unknown": 1472
+    },
+    "triplingGap": 781,
+    "annotation": {
+      "line1": "+6000 GW for",
+      "line2": "tripling renewables"
+    },
+    "explainer": "Even if all renewable projects tracked by GEM come online by 2030, the global tripling goal would still be missed by around 800 GW."
+  },
+  "EU27": {
+    "construction": {
+      "pre2030": 13,
+      "unknown": 6
+    },
+    "preConstruction": {
+      "pre2030": 133,
+      "unknown": 217
+    },
+    "announced": {
+      "pre2030": 39,
+      "unknown": 52
+    },
+    "triplingGap": 30,
+    "annotation": {
+      "line1": "+490 GW for",
+      "line2": "2030 REPowerEU target"
+    },
+    "explainer": "The EU’s REPowerEU plan aims for 1236 GW renewables by 2030, +490GW over the total in 2025. Renewable projects in the EU tracked by GEM nearly equal the additional capacity needed for REPowerEU but much of that pipeline lacks a confirmed commissioning year."
+  },
+  "G7": {
+    "construction": {
+      "pre2030": 35,
+      "unknown": 24
+    },
+    "preConstruction": {
+      "pre2030": 144,
+      "unknown": 182
+    },
+    "announced": {
+      "pre2030": 57,
+      "unknown": 73
+    },
+    "triplingGap": 1044,
+    "annotation": {
+      "line1": "+1500 GW for",
+      "line2": "tripling"
+    },
+    "explainer": "Renewable capacity in development tracked by GEM in the G7 amounts to approximately half that required for tripling, even when considering capacity that lacks a known start year."
+  },
+  "China": {
+    "construction": {
+      "pre2030": 92,
+      "unknown": 386
+    },
+    "preConstruction": {
+      "pre2030": 38,
+      "unknown": 669
+    },
+    "announced": {
+      "pre2030": 16,
+      "unknown": 410
+    },
+    "triplingGap": -629,
+    "annotation": {
+      "line1": "+982 GW in 2030 for",
+      "line2": "NDC renewables target"
+    },
+    "explainer": "China’s latest NDC sets a 2035 target of 3,600 GW of solar and wind, which translates to approximately 2,604 GW by 2030. Adding 636 GW of an existing 2030 target for hydro, bio, and other renewables, equates to +982 GW additional renewable capacity. The equivalent figure for in-development capacity tracked by GEM exceeds this amount by over 600 GW."
+
+  },
+  "India": {
+    "construction": {
+      "pre2030": 98,
+      "unknown": 42
+    },
+    "preConstruction": {
+      "pre2030": 22,
+      "unknown": 42
+    },
+    "announced": {
+      "pre2030": 18,
+      "unknown": 63
+    },
+    "triplingGap": -40,
+    "annotation": {
+      "line1": "+250 GW for",
+      "line2": "non-fossils target"
+    },
+    "explainer": "India’s 500 GW non-fossil capacity target for 2030 requires about +250 GW from 2025 levels. GEM tracks enough renewable capacity in development to exceed that by 40 GW, but more than half lacks a known start year."
+  }
+}

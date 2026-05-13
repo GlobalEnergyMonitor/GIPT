@@ -1,0 +1,468 @@
+:root {
+  --bg: #ffffff;
+  --text: #13212b;
+  --muted: #61707a;
+  --accent: #002430;
+  --border: #dbe2e8;
+  --column-width: 760px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Plus Jakarta Sans", sans-serif;
+  line-height: 1.72;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.page-locked .page {
+  display: none;
+}
+
+.password-gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #f8fafc;
+}
+
+.password-gate[hidden] {
+  display: none !important;
+}
+
+.password-gate-card {
+  width: min(100%, 420px);
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 18px 48px rgba(0, 36, 48, 0.12);
+}
+
+.password-gate-card h2 {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+  line-height: 1.25;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.password-gate-card p {
+  margin: 0 0 18px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.password-gate-row {
+  display: grid;
+  gap: 8px;
+}
+
+.password-gate-row label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.password-gate-row input {
+  width: 100%;
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.password-gate-row button {
+  margin-top: 4px;
+  font: inherit;
+  font-weight: 700;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 6px;
+  color: #ffffff;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+.password-gate-error {
+  min-height: 1.5em;
+  margin: 12px 0 0 !important;
+  color: #b91c1c !important;
+  font-size: 0.92rem;
+}
+
+.page {
+  width: 100%;
+  padding: 40px 20px 80px;
+}
+
+.article {
+  width: 100%;
+  max-width: var(--column-width);
+  margin: 0 auto;
+}
+
+.article-header {
+  margin: 0 0 32px;
+}
+
+h1 {
+  margin: 0 0 14px;
+  font-size: clamp(2.2rem, 5vw, 3.3rem);
+  line-height: 1.04;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+  max-width: 12ch;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--muted);
+  max-width: 42rem;
+}
+
+.content-block {
+  width: 100%;
+  margin: 0 0 34px;
+}
+
+.prose {
+  font-size: 1.06rem;
+}
+
+.prose p {
+  margin: 0 0 18px;
+}
+
+.prose p:last-child {
+  margin-bottom: 0;
+}
+
+h2 {
+  margin: 0 0 10px;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+}
+
+.figure-block {
+  margin: 34px 0 42px;
+}
+
+.figure-shell {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #fff;
+  padding: 14px;
+}
+
+.flourish-block {
+  margin: 34px 0 42px;
+}
+
+.flourish-block--tight-after {
+  margin-bottom: 30px;
+}
+
+.flourish-wrap {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.flourish-embed {
+  width: 100%;
+  margin: 0;
+  overflow: visible !important;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+.placeholder-shell {
+  padding: 18px;
+}
+
+.placeholder {
+  min-height: 280px;
+  width: 100%;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.98rem;
+  padding: 24px;
+}
+
+/* D3 section */
+.d3-block {
+  margin: 38px 0 46px;
+}
+
+.d3-card {
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.d3-chart-header {
+  margin-bottom: 14px;
+}
+
+.d3-chart-title {
+  margin: 0 0 14px;
+  font-size: 1.35rem;
+  line-height: 1.25;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.d3-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px;
+  flex-wrap: wrap;
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.d3-controls label {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.risk-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.risk-toggle input {
+  margin: 0;
+}
+
+.d3-controls select {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 9px 34px 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text);
+}
+
+.d3-explainer {
+  display: none;
+  margin: 0 0 14px;
+  max-width: 620px;
+  color: var(--text);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.d3-explainer p {
+  margin: 0 0 8px;
+}
+
+.d3-explainer p:last-child {
+  margin-bottom: 0;
+}
+
+#renewable-d3-chart {
+  width: 100%;
+}
+
+#renewable-d3-chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Plotly section */
+.plotly-block {
+  margin: 38px 0 46px;
+}
+
+.plotly-section-title {
+  margin: 0 0 14px;
+  font-size: 1.35rem;
+  line-height: 1.25;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.section-copy {
+  max-width: 760px;
+  margin: 0;
+  font-size: 1.06rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.fossil-flourish-grid {
+  display: grid;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.plotly-figure-subtitle {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--accent);
+}
+
+.plotly-meta {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.plotly-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 16px;
+  flex-wrap: wrap;
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.plotly-controls label {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.plotly-controls select {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 9px 34px 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text);
+}
+
+.plotly-technology-note {
+  max-width: 760px;
+  margin: 0 0 18px;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.plotly-technology-note p {
+  margin: 0 0 10px;
+}
+
+.plotly-technology-note p:last-child {
+  margin-bottom: 0;
+}
+
+.plotly-chart-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin-top: 18px;
+}
+
+.plotly-chart-group {
+  min-width: 0;
+}
+
+.plotly-chart {
+  width: 100%;
+  min-height: 420px;
+}
+
+.plotly-chart--compact {
+  min-height: 320px;
+}
+
+.plotly-meta {
+  margin-top: 6px;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 28px 16px 56px;
+  }
+
+  .article-header {
+    margin-bottom: 24px;
+  }
+
+  .content-block {
+    margin-bottom: 26px;
+  }
+
+  .flourish-block,
+  .figure-block,
+  .d3-block,
+  .plotly-block {
+    margin: 28px 0 34px;
+  }
+
+  .flourish-block--tight-after {
+    margin-bottom: 26px;
+  }
+
+  .figure-shell {
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+.d3-card {
+  padding: 0;
+}
+
+  .plotly-chart {
+    min-height: 360px;
+  }
+
+  .plotly-chart--compact {
+    min-height: 320px;
+  }
+
+  .prose {
+    font-size: 1rem;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+  }
+}
