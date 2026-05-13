@@ -1,0 +1,34 @@
+﻿province_cn,province_en,new_capacity_total_10kw,new_capacity_utility_10kw,new_capacity_distributed_10kw,new_capacity_residential_10kw,cum_capacity_total_10kw,cum_capacity_utility_10kw,cum_capacity_distributed_10kw,cum_capacity_residential_10kw,province_translation_missing
+总计,Total,1152.0,708.0,444.0,,21582.0,14875.0,6707.0,,False
+北京,Beijing,9.0,0.0,9.0,,60.0,5.0,55.0,,False
+天津,Tianjin,9.0,6.0,3.0,,151.0,110.0,41.0,,False
+河北,Hebei,97.0,56.0,41.0,,1571.0,1018.0,553.0,,False
+山西,Shanxi,110.0,106.0,4.0,,1198.0,963.0,235.0,,False
+内蒙古,Inner Mongolia,50.0,47.0,3.0,,1131.0,1048.0,83.0,,False
+辽宁,Liaoning,26.0,22.0,4.0,,369.0,268.0,101.0,,False
+吉林,Jilin,52.0,50.0,2.0,,326.0,255.0,71.0,,False
+黑龙江,Heilongjiang,12.0,10.0,2.0,,287.0,205.0,82.0,,False
+上海,Shanghai,8.0,0.0,8.0,,117.0,6.0,111.0,,False
+江苏,Jiangsu,113.0,62.0,51.0,,1599.0,883.0,716.0,,False
+浙江,Zhejiang,70.0,14.0,56.0,,1409.0,428.0,981.0,,False
+安徽,Anhui,19.0,1.0,18.0,,1272.0,774.0,498.0,,False
+福建,Fujian,10.0,0.0,10.0,,179.0,38.0,141.0,,False
+江西,Jiangxi,48.0,27.0,21.0,,678.0,394.0,284.0,,False
+山东,Shandong,181.0,62.0,119.0,,1801.0,739.0,1062.0,,False
+河南,Henan,35.0,0.0,35.0,,1089.0,600.0,489.0,,False
+湖北,Hubei,26.0,20.0,6.0,,647.0,440.0,207.0,,False
+湖南,Hunan,16.0,14.0,2.0,,360.0,169.0,191.0,,False
+广东,Guangdong,87.0,69.0,18.0,,697.0,371.0,326.0,,False
+广西,Guangxi,30.0,27.0,3.0,,165.0,132.0,33.0,,False
+海南,Hainan,0.0,0.0,0.0,,140.0,127.0,13.0,,False
+重庆,Chongqing,0.0,0.0,0.0,,65.0,58.0,7.0,,False
+四川,Sichuan,1.0,0.0,1.0,,189.0,169.0,20.0,,False
+贵州,Guizhou,27.0,27.0,0.0,,537.0,518.0,19.0,,False
+云南,Yunnan,14.0,2.0,12.0,,389.0,352.0,37.0,,False
+西藏,Tibet,18.0,18.0,0.0,,128.0,128.0,0.0,,False
+陕西,Shaanxi,13.0,3.0,10.0,,953.0,781.0,172.0,,False
+甘肃,Gansu,4.0,2.0,2.0,,911.0,838.0,73.0,,False
+青海,Qinghai,1.0,0.0,1.0,,1102.0,1086.0,16.0,,False
+宁夏,Ningxia,65.0,64.0,1.0,,983.0,908.0,75.0,,False
+新疆维吾尔自治区,Xinjiang,1.0,0.0,1.0,,1042.0,1027.0,15.0,,False
+新疆兵团,Xinjiang Production and Construction Corps,0.0,0.0,0.0,,39.0,39.0,0.0,,False

@@ -1,0 +1,196 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>China's provincial solar PV boom</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+
+  <link rel="stylesheet" href="./style.css" />
+
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+<body>
+  <main class="page">
+
+    <header class="hero">
+      <p class="eyebrow">Beta analysis page</p>
+      <h1>China's provincial solar</h1>
+      <p class="subtitle">
+        Provincial National Energy Administration (NEA) data show China's solar buildout spreading across two geographies:
+        utility-scale expansion in the northwest and distributed growth across eastern and central provinces.
+      </p>
+
+      <div class="meta-row">
+        <span id="data-status" class="pill">Loading data...</span>
+        <span class="pill">Scraped from NEA press releases, see <a href="https://github.com/GlobalEnergyMonitor/GIPT/tree/main/China%20NEA">GitHub repo</a></span>
+      </div>
+    </header>
+
+    <section class="stat-grid" aria-label="Headline statistics">
+      <article class="stat-card">
+        <p class="stat-label">Total solar PV capacity</p>
+        <p id="stat-total" class="stat-value">-</p>
+        <p id="stat-total-note" class="stat-note">-</p>
+      </article>
+
+      <article class="stat-card">
+        <p class="stat-label">2025 solar PV additions</p>
+        <p id="stat-addition" class="stat-value">-</p>
+        <p class="stat-note">Largest annual increase</p>
+      </article>
+
+      <article class="stat-card">
+        <p class="stat-label">Distributed solar PV share</p>
+        <p id="stat-distributed-share" class="stat-value">-</p>
+        <p class="stat-note">Share of total PV capacity in 2025</p>
+      </article>
+
+      <article class="stat-card">
+        <p class="stat-label">Household PV</p>
+        <p id="stat-household" class="stat-value">-</p>
+        <p class="stat-note">Subset of distributed PV</p>
+      </article>
+    </section>
+
+    <section class="section">
+      <div class="section-heading">
+        <h2>What the data shows</h2>
+      </div>
+
+      <div id="analysis-bullets" class="bullet-list">
+        <p>Loading analysis...</p>
+      </div>
+    </section>
+
+    <section class="section map-section">
+      <div class="section-heading">
+        <h2>China's solar capacity by province and type</h2>
+      </div>
+
+      <div class="map-controls">
+        <div>
+          <label for="map-time-slider">Selected period</label>
+          <div id="map-period-label" class="map-period-label">-</div>
+        </div>
+
+        <div class="slider-wrap">
+          <input id="map-time-slider" type="range" min="0" max="0" step="1" value="0" />
+          <div class="slider-labels">
+            <span id="map-slider-start">-</span>
+            <span id="map-slider-end">-</span>
+          </div>
+        </div>
+      </div>
+
+      <p id="map-period-note" class="map-note">Loading map...</p>
+
+      <div id="d3-province-map" class="d3-map"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-heading chart-heading">
+        <div>
+          <h2>Cumulative installed capacity</h2>
+          <p>
+            Utility-scale, household distributed, and non-household distributed capacity, in gigwatts (GW).
+          </p>
+        </div>
+
+        <label class="chart-select-label" for="area-stack-select">
+          Area
+          <select id="area-stack-select"></select>
+        </label>
+      </div>
+
+      <div class="chart-period-toggle" role="group" aria-label="Column chart period frequency">
+        <button type="button" class="is-active" data-chart-period="annual">Annual</button>
+        <button type="button" data-chart-period="quarterly">Quarterly</button>
+      </div>
+
+      <div id="chart-national-stack" class="chart"></div>
+    </section>
+
+    <section class="section two-col">
+      <div>
+        <div class="section-heading compact chart-heading">
+          <div>
+            <h2>Capacity additions</h2>
+            <p>Year-on-year change in capacity, in gigwatts (GW).</p>
+          </div>
+
+          <div class="chart-control-stack">
+            <div class="chart-period-toggle compact-toggle" role="group" aria-label="Column chart period frequency">
+              <button type="button" class="is-active" data-chart-period="annual">Annual</button>
+              <button type="button" data-chart-period="quarterly">Quarterly</button>
+            </div>
+
+            <label class="chart-select-label compact-select" for="area-additions-select">
+              Area
+              <select id="area-additions-select"></select>
+            </label>
+          </div>
+        </div>
+        <div id="chart-additions" class="chart small-chart"></div>
+      </div>
+
+      <div>
+        <div class="section-heading compact">
+          <h2>Provincial breakdown</h2>
+          <p>Latest capacity mix among the largest provinces.</p>
+        </div>
+        <div id="chart-province-mix" class="chart small-chart"></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-heading">
+        <h2>Provincal solar capacity profile</h2>
+        <p>
+          Provinces further right have larger solar fleets; provinces higher up are more distributed-heavy.
+          Bubble size shows recent total growth.
+        </p>
+      </div>
+
+      <div id="chart-scatter" class="chart"></div>
+    </section>
+
+    <section class="section table-section">
+      <div class="table-panel">
+        <div class="section-heading compact">
+          <h2>Latest capacity by province</h2>
+          <p id="table-latest-note">Top provinces at latest year-end.</p>
+        </div>
+        <div id="table-latest" class="table-wrap"></div>
+      </div>
+
+      <div class="table-panel">
+        <div class="section-heading compact">
+          <h2>Largest recent increases</h2>
+          <p id="table-growth-note">Change from 2022 year-end to latest year-end.</p>
+        </div>
+        <div id="table-growth" class="table-wrap"></div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>
+        Draft beta page for exploratory analysis. National totals use the dataset's national <code>Total</code> row rather than summing provinces.
+      </p>
+    </footer>
+
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
