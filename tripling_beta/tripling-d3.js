@@ -36,7 +36,7 @@
   const LEGEND_FONT = 12.5;
   const FOOTER_FONT = 12.5;
 
-  const FOOTER_LINE_1 = "Includes solar, wind, and non-pumped storage hydropower.";
+  const FOOTER_LINE_1 = "Includes utility-scale solar, wind, and non-pumped storage hydropower.";
   const FOOTER_LINE_2 = "Square area denotes total renewable capacity; color split shows pre-2030 versus unknown commissioning year.";
 
   function toNumber(value) {
@@ -305,7 +305,7 @@
         .text(text);
     }
 
-    function drawSegmentLabel({ x, y, width, side, value, fill, weight = 700, yOffset = 0 }) {
+    function drawSegmentLabel({ x, y, width, side, value, fill, weight = 700, yOffset = 0, xOffset = 0 }) {
       if (value <= 0 || side < 34 || width < 34) return;
 
       const label = formatGW(value);
@@ -321,7 +321,7 @@
         });
       } else {
         addText({
-          x: x + width / 2,
+          x: x + width / 2 + xOffset,
           y: y + 16 + yOffset,
           text: label,
           size: SMALL_VALUE_FONT,
@@ -405,7 +405,8 @@
         side,
         value: pre2030,
         fill: LIGHT_TEXT,
-        weight: 700
+        weight: 700,
+        xOffset: countryName === "Global" ? 4 : 0
       });
 
       drawSegmentLabel({
