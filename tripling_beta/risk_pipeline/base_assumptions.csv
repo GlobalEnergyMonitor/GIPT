@@ -1,28 +1,73 @@
 scenario,technology,status,date_known,cancel_prob,delay_min,delay_mode,delay_max,undated_remaining_min,undated_remaining_mode,undated_remaining_max
+low,offshore wind,construction,known,0.025,0,0.3125,1.25,,,
+low,offshore wind,construction,unknown,0.0625,0,0.625,1.25,0,1.875,3.125
+low,offshore wind,pre-construction,known,0.25,0,1.25,6.25,,,
+low,offshore wind,pre-construction,unknown,0.375,0,1.25,5,2.5,5,8.75
+low,offshore wind,announced,known,0.5625,0,2.5,6.25,,,
+low,offshore wind,announced,unknown,0.6875,0,2.5,7.5,3.75,7.5,12.5
+low,onshore wind,construction,known,0.0375,0,0,1.25,,,
+low,onshore wind,construction,unknown,0.0625,0,0,1.25,0,1.25,2.5
+low,onshore wind,pre-construction,known,0.1875,0,1.25,3.75,,,
+low,onshore wind,pre-construction,unknown,0.275,0,1.25,5,1.25,3.75,6.25
+low,onshore wind,announced,known,0.4375,0,2.5,6.25,,,
+low,onshore wind,announced,unknown,0.5625,0,2.5,7.5,2.5,5,10
+low,utility-scale solar,construction,known,0.0125,0,0,0.875,,,
+low,utility-scale solar,construction,unknown,0.0375,0,0,0.875,0,1,2.5
+low,utility-scale solar,pre-construction,known,0.15,0,0.625,1.875,,,
+low,utility-scale solar,pre-construction,unknown,0.225,0,0.625,1.875,1.25,2.5,4.375
+low,utility-scale solar,announced,known,0.25,0,1.25,2.5,,,
+low,utility-scale solar,announced,unknown,0.5,0,1.875,3.125,2.5,5,7.5
+low,hydropower,construction,known,0.1,0,1.25,3.75,,,
+low,hydropower,construction,unknown,0.15,0,1.25,3.75,1.25,2.5,5
+low,hydropower,pre-construction,known,0.3125,0,2.5,6.25,,,
+low,hydropower,pre-construction,unknown,0.4375,0,2.5,7.5,2.5,6.25,10
+low,hydropower,announced,known,0.625,0,3.75,8.75,,,
+low,hydropower,announced,unknown,0.75,0,3.75,10,3.75,7.5,12.5
 central,offshore wind,construction,known,0.02,0,0.25,1,,,
 central,offshore wind,construction,unknown,0.05,0,0.5,1,0,1.5,2.5
 central,offshore wind,pre-construction,known,0.2,0,1,5,,,
 central,offshore wind,pre-construction,unknown,0.3,0,1,4,2,4,7
 central,offshore wind,announced,known,0.45,0,2,5,,,
 central,offshore wind,announced,unknown,0.55,0,2,6,3,6,10
-,,,,,,,,,,
 central,onshore wind,construction,known,0.03,0,0,1,,,
 central,onshore wind,construction,unknown,0.05,0,0,1,0,1,2
 central,onshore wind,pre-construction,known,0.15,0,1,3,,,
 central,onshore wind,pre-construction,unknown,0.22,0,1,4,1,3,5
 central,onshore wind,announced,known,0.35,0,2,5,,,
 central,onshore wind,announced,unknown,0.45,0,2,6,2,4,8
-,,,,,,,,,,
 central,utility-scale solar,construction,known,0.01,0,0,0.7,,,
 central,utility-scale solar,construction,unknown,0.03,0,0,0.7,0,0.8,2
 central,utility-scale solar,pre-construction,known,0.12,0,0.5,1.5,,,
 central,utility-scale solar,pre-construction,unknown,0.18,0,0.5,1.5,1,2,3.5
-central,utility-scale solar,announced,known,0.3,0,1.5,2.5,,,
+central,utility-scale solar,announced,known,0.2,0,1,2,,,
 central,utility-scale solar,announced,unknown,0.4,0,1.5,2.5,2,4,6
-,,,,,,,,,,
 central,hydropower,construction,known,0.08,0,1,3,,,
 central,hydropower,construction,unknown,0.12,0,1,3,1,2,4
 central,hydropower,pre-construction,known,0.25,0,2,5,,,
 central,hydropower,pre-construction,unknown,0.35,0,2,6,2,5,8
 central,hydropower,announced,known,0.5,0,3,7,,,
 central,hydropower,announced,unknown,0.6,0,3,8,3,6,10
+high,offshore wind,construction,known,0.015,0,0.1875,0.75,,,
+high,offshore wind,construction,unknown,0.0375,0,0.375,0.75,0,1.125,1.875
+high,offshore wind,pre-construction,known,0.15,0,0.75,3.75,,,
+high,offshore wind,pre-construction,unknown,0.225,0,0.75,3,1.5,3,5.25
+high,offshore wind,announced,known,0.3375,0,1.5,3.75,,,
+high,offshore wind,announced,unknown,0.4125,0,1.5,4.5,2.25,4.5,7.5
+high,onshore wind,construction,known,0.0225,0,0,0.75,,,
+high,onshore wind,construction,unknown,0.0375,0,0,0.75,0,0.75,1.5
+high,onshore wind,pre-construction,known,0.1125,0,0.75,2.25,,,
+high,onshore wind,pre-construction,unknown,0.165,0,0.75,3,0.75,2.25,3.75
+high,onshore wind,announced,known,0.2625,0,1.5,3.75,,,
+high,onshore wind,announced,unknown,0.3375,0,1.5,4.5,1.5,3,6
+high,utility-scale solar,construction,known,0.0075,0,0,0.525,,,
+high,utility-scale solar,construction,unknown,0.0225,0,0,0.525,0,0.6,1.5
+high,utility-scale solar,pre-construction,known,0.09,0,0.375,1.125,,,
+high,utility-scale solar,pre-construction,unknown,0.135,0,0.375,1.125,0.75,1.5,2.625
+high,utility-scale solar,announced,known,0.15,0,0.75,1.5,,,
+high,utility-scale solar,announced,unknown,0.3,0,1.125,1.875,1.5,3,4.5
+high,hydropower,construction,known,0.06,0,0.75,2.25,,,
+high,hydropower,construction,unknown,0.09,0,0.75,2.25,0.75,1.5,3
+high,hydropower,pre-construction,known,0.1875,0,1.5,3.75,,,
+high,hydropower,pre-construction,unknown,0.2625,0,1.5,4.5,1.5,3.75,6
+high,hydropower,announced,known,0.375,0,2.25,5.25,,,
+high,hydropower,announced,unknown,0.45,0,2.25,6,2.25,4.5,7.5

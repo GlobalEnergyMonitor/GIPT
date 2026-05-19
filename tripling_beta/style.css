@@ -310,6 +310,8 @@ img {
 /* Plotly section */
 .plotly-block {
   margin: 38px 0 46px;
+  position: relative;
+  isolation: isolate;
 }
 
 .plotly-section-title {
@@ -351,12 +353,18 @@ img {
 }
 
 .plotly-controls {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   display: flex;
   align-items: center;
   gap: 14px;
   margin: 0 0 16px;
+  padding: 8px 0 10px;
   flex-wrap: wrap;
   font-family: "Plus Jakarta Sans", sans-serif;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid rgba(219, 226, 232, 0.85);
 }
 
 .plotly-controls label {
@@ -394,6 +402,8 @@ img {
 }
 
 .plotly-chart-grid {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 1fr;
   gap: 24px;

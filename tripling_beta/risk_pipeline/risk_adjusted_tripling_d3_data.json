@@ -1,16 +1,76 @@
 {
-  "Global": {
+  "central": {
     "construction": {
-      "pre2030": 304.2844,
-      "unknown": 514.67515
+      "pre2030": 304.37005,
+      "unknown": 514.32975
     },
     "preConstruction": {
-      "pre2030": 398.05985,
-      "unknown": 1187.5971000000002
+      "pre2030": 397.95385,
+      "unknown": 1181.2035499999997
     },
     "announced": {
-      "pre2030": 129.16835,
-      "unknown": 275.46659999999997
+      "pre2030": 145.01895000000002,
+      "unknown": 277.9755
+    },
+    "triplingGap": 0,
+    "annotation": {
+      "line1": "Risk-adjusted",
+      "line2": "p50 projection"
+    },
+    "explainer": "Risk-adjusted mode shows p50 Monte Carlo capacity delivered in 2026-2030, split by projects with known versus unknown start years."
+  },
+  "Global": {
+    "construction": {
+      "pre2030": 304.37005,
+      "unknown": 514.32975
+    },
+    "preConstruction": {
+      "pre2030": 397.95385,
+      "unknown": 1181.2035499999997
+    },
+    "announced": {
+      "pre2030": 145.01895000000002,
+      "unknown": 277.9755
+    },
+    "triplingGap": 0,
+    "annotation": {
+      "line1": "Risk-adjusted",
+      "line2": "p50 projection"
+    },
+    "explainer": "Risk-adjusted mode shows p50 Monte Carlo capacity delivered in 2026-2030, split by projects with known versus unknown start years."
+  },
+  "high": {
+    "construction": {
+      "pre2030": 309.4839,
+      "unknown": 520.45525
+    },
+    "preConstruction": {
+      "pre2030": 457.08885,
+      "unknown": 1556.0695
+    },
+    "announced": {
+      "pre2030": 185.0359,
+      "unknown": 741.7065
+    },
+    "triplingGap": 0,
+    "annotation": {
+      "line1": "Risk-adjusted",
+      "line2": "p50 projection"
+    },
+    "explainer": "Risk-adjusted mode shows p50 Monte Carlo capacity delivered in 2026-2030, split by projects with known versus unknown start years."
+  },
+  "low": {
+    "construction": {
+      "pre2030": 295.96255,
+      "unknown": 503.6573
+    },
+    "preConstruction": {
+      "pre2030": 337.3319,
+      "unknown": 781.0396499999999
+    },
+    "announced": {
+      "pre2030": 110.50625,
+      "unknown": 40.481
     },
     "triplingGap": 0,
     "annotation": {

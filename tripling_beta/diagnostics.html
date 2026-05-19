@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tripling model diagnostics</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="./diagnostics.css" />
+</head>
+<body class="page-locked">
+  <div id="password-gate" class="password-gate" role="dialog" aria-modal="true" aria-labelledby="password-gate-title">
+    <form id="password-gate-form" class="password-gate-card">
+      <h2 id="password-gate-title">Private preview</h2>
+      <p>Enter the preview password to view this page.</p>
+      <div class="password-gate-row">
+        <label for="password-gate-input">Password</label>
+        <input id="password-gate-input" type="password" autocomplete="current-password" />
+        <button type="submit">Enter</button>
+      </div>
+      <p id="password-gate-error" class="password-gate-error" aria-live="polite"></p>
+    </form>
+  </div>
+
+  <main class="diagnostics-page" aria-hidden="true">
+    <header class="diagnostics-toolbar">
+      <div class="control-group">
+        <label for="diagnostic-technology-select">Select technology:</label>
+        <select id="diagnostic-technology-select" disabled>
+          <option>Loading...</option>
+        </select>
+      </div>
+
+      <label class="risk-toggle" for="diagnostic-risk-toggle">
+        <input type="checkbox" id="diagnostic-risk-toggle" checked />
+        Show risk-adjusted projection
+      </label>
+
+      <div class="control-group">
+        <label for="diagnostic-scenario-select">Scenario:</label>
+        <select id="diagnostic-scenario-select" disabled>
+          <option>Loading...</option>
+        </select>
+      </div>
+    </header>
+
+    <section class="diagnostics-grid" aria-label="Model diagnostics">
+      <section class="diagnostics-panel diagnostics-panel--chart">
+        <h2>Global capacity in development by status, in gigawatts (GW)</h2>
+        <div id="diagnostic-cumulative-chart" class="diagnostic-chart diagnostic-chart--compact"></div>
+      </section>
+
+      <section class="diagnostics-panel diagnostics-panel--table">
+        <div class="table-header">
+          <h2>Base assumptions</h2>
+          <p id="base-assumptions-caption"></p>
+        </div>
+        <div id="base-assumptions-table" class="table-scroll"></div>
+      </section>
+
+      <section class="diagnostics-panel diagnostics-panel--chart">
+        <h2>Annual capacity additions, historical and projected by development status, in gigawatts (GW)</h2>
+        <div id="diagnostic-annual-chart" class="diagnostic-chart"></div>
+        <p class="diagnostic-note">2026-2030 capacity additions consistent with tripling derived from the IEA's Net Zero Emissions by 2050 pathway, 2024 edition.</p>
+      </section>
+
+      <section class="diagnostics-panel diagnostics-panel--table">
+        <div class="table-header">
+          <h2>Geography multipliers</h2>
+          <p id="geography-multipliers-caption"></p>
+        </div>
+        <div id="geography-multipliers-table" class="table-scroll"></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script>
+(function () {
+  const PAGE_PASSWORD = "tripling";
+
+  const gate = document.getElementById("password-gate");
+  const form = document.getElementById("password-gate-form");
+  const input = document.getElementById("password-gate-input");
+  const error = document.getElementById("password-gate-error");
+
+  function unlockPage() {
+    document.body.classList.remove("page-locked");
+    document.querySelector(".diagnostics-page")?.removeAttribute("aria-hidden");
+    if (gate) {
+      gate.setAttribute("hidden", "");
+      gate.style.display = "none";
+    }
+    window.setTimeout(() => window.dispatchEvent(new Event("resize")), 0);
+  }
+
+  input?.focus();
+
+  form?.addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    if (!input) return;
+
+    if (input.value.trim() === PAGE_PASSWORD) {
+      unlockPage();
+      return;
+    }
+
+    if (error) {
+      error.textContent = "That password did not match.";
+    }
+    input.value = "";
+    input.focus();
+  });
+})();
+  </script>
+  <script src="./diagnostics.js"></script>
+</body>
+</html>

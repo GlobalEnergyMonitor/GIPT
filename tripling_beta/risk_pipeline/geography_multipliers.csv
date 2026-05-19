@@ -1,25 +1,73 @@
-geography_key,technology,cancel_multiplier,delay_multiplier,remaining_time_multiplier
-China,utility-scale solar,0.5,0.7,0.8
-China,onshore wind,0.75,0.7,0.8
-China,offshore wind,0.75,0.8,0.8
-China,hydropower,0.5,0.7,0.8
-Africa,utility-scale solar,1,1,1
-Africa,onshore wind,1,1,1
-Africa,offshore wind,1,1,1
-Africa,hydropower,1,1,1
-Americas,utility-scale solar,1,1,1
-Americas,onshore wind,1,1,1
-Americas,offshore wind,1,1,1
-Americas,hydropower,1,1,1
-Asia,utility-scale solar,1,1,1
-Asia,onshore wind,1,1,1
-Asia,offshore wind,1,1,1
-Asia,hydropower,1,1,1
-Europe,utility-scale solar,1,1,1
-Europe,onshore wind,1,1,1
-Europe,offshore wind,1,1,1
-Europe,hydropower,1,1,1
-Oceania,utility-scale solar,1,1,1
-Oceania,onshore wind,1,1,1
-Oceania,offshore wind,1,1,1
-Oceania,hydropower,1,1,1
+scenario,geography_key,technology,cancel_multiplier,delay_multiplier,remaining_time_multiplier
+low,China,utility-scale solar,0.55,0.805,0.92
+low,China,onshore wind,0.825,0.805,0.92
+low,China,offshore wind,0.825,0.92,0.92
+low,China,hydropower,0.55,0.805,0.92
+low,Africa,utility-scale solar,1.1,1.15,1.15
+low,Africa,onshore wind,1.1,1.15,1.15
+low,Africa,offshore wind,1.1,1.15,1.15
+low,Africa,hydropower,1.1,1.15,1.15
+low,Americas,utility-scale solar,1.1,1.15,1.15
+low,Americas,onshore wind,1.1,1.15,1.15
+low,Americas,offshore wind,1.1,1.15,1.15
+low,Americas,hydropower,1.1,1.15,1.15
+low,Asia,utility-scale solar,1.1,1.15,1.15
+low,Asia,onshore wind,1.1,1.15,1.15
+low,Asia,offshore wind,1.1,1.15,1.15
+low,Asia,hydropower,1.1,1.15,1.15
+low,Europe,utility-scale solar,1.1,1.15,1.15
+low,Europe,onshore wind,1.1,1.15,1.15
+low,Europe,offshore wind,1.1,1.15,1.15
+low,Europe,hydropower,1.1,1.15,1.15
+low,Oceania,utility-scale solar,1.1,1.15,1.15
+low,Oceania,onshore wind,1.1,1.15,1.15
+low,Oceania,offshore wind,1.1,1.15,1.15
+low,Oceania,hydropower,1.1,1.15,1.15
+central,China,utility-scale solar,0.5,0.7,0.8
+central,China,onshore wind,0.75,0.7,0.8
+central,China,offshore wind,0.75,0.8,0.8
+central,China,hydropower,0.5,0.7,0.8
+central,Africa,utility-scale solar,1,1,1
+central,Africa,onshore wind,1,1,1
+central,Africa,offshore wind,1,1,1
+central,Africa,hydropower,1,1,1
+central,Americas,utility-scale solar,1,1,1
+central,Americas,onshore wind,1,1,1
+central,Americas,offshore wind,1,1,1
+central,Americas,hydropower,1,1,1
+central,Asia,utility-scale solar,1,1,1
+central,Asia,onshore wind,1,1,1
+central,Asia,offshore wind,1,1,1
+central,Asia,hydropower,1,1,1
+central,Europe,utility-scale solar,1,1,1
+central,Europe,onshore wind,1,1,1
+central,Europe,offshore wind,1,1,1
+central,Europe,hydropower,1,1,1
+central,Oceania,utility-scale solar,1,1,1
+central,Oceania,onshore wind,1,1,1
+central,Oceania,offshore wind,1,1,1
+central,Oceania,hydropower,1,1,1
+high,China,utility-scale solar,0.45,0.595,0.68
+high,China,onshore wind,0.675,0.595,0.68
+high,China,offshore wind,0.675,0.68,0.68
+high,China,hydropower,0.45,0.595,0.68
+high,Africa,utility-scale solar,0.9,0.85,0.85
+high,Africa,onshore wind,0.9,0.85,0.85
+high,Africa,offshore wind,0.9,0.85,0.85
+high,Africa,hydropower,0.9,0.85,0.85
+high,Americas,utility-scale solar,0.9,0.85,0.85
+high,Americas,onshore wind,0.9,0.85,0.85
+high,Americas,offshore wind,0.9,0.85,0.85
+high,Americas,hydropower,0.9,0.85,0.85
+high,Asia,utility-scale solar,0.9,0.85,0.85
+high,Asia,onshore wind,0.9,0.85,0.85
+high,Asia,offshore wind,0.9,0.85,0.85
+high,Asia,hydropower,0.9,0.85,0.85
+high,Europe,utility-scale solar,0.9,0.85,0.85
+high,Europe,onshore wind,0.9,0.85,0.85
+high,Europe,offshore wind,0.9,0.85,0.85
+high,Europe,hydropower,0.9,0.85,0.85
+high,Oceania,utility-scale solar,0.9,0.85,0.85
+high,Oceania,onshore wind,0.9,0.85,0.85
+high,Oceania,offshore wind,0.9,0.85,0.85
+high,Oceania,hydropower,0.9,0.85,0.85

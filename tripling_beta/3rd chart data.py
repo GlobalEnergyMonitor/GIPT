@@ -4,16 +4,19 @@ import pandas
 import numpy as np
 
 z=pandas.read_json("https://api.iea.org/renewables/market?region=World")
+HISTORICAL_YEARS = range(2010, 2026)
 #tmp=pandas.DataFrame(z[(z['flow']=='Net additions')&(z['case']=='ACC')&z['year'].isin(range(2025,2031))]).groupby('product')['value'].sum()
 #IEA utility-scale additions, DC
-solar_ac=pandas.DataFrame(z[(z['flow']=='Net additions')&(z['case']=='ACC')&z['year'].isin(range(2010,2026))&(z['product']=='PV utility-scale systems')]).value*.85
-solar_ac.index=range(2010,2026)
-onwind=pandas.DataFrame(z[(z['flow']=='Net additions')&(z['case']=='ACC')&z['year'].isin(range(2010,2026))&(z['product']=='Onshore wind')]).value
-onwind.index=range(2010,2026)
-offwind=pandas.DataFrame(z[(z['flow']=='Net additions')&(z['case']=='ACC')&z['year'].isin(range(2010,2026))&(z['product']=='Offshore wind')]).value
-offwind.index=range(2010,2026)
-tmp=pandas.concat([solar_ac,onwind,offwind],axis=1)
-tmp.columns=['Utility-scale solar','Onshore wind','Offshore wind']
+solar_ac=pandas.DataFrame(z[(z['flow']=='Net additions')&(z['case']=='ACC')&z['year'].isin(HISTORICAL_YEARS)&(z['product']=='PV utility-scale systems')]).value*.85
+solar_ac.index=HISTORICAL_YEARS
+onwind=pandas.DataFrame(z[(z['flow']=='Net additions')&(z['case']=='ACC')&z['year'].isin(HISTORICAL_YEARS)&(z['product']=='Onshore wind')]).value
+onwind.index=HISTORICAL_YEARS
+offwind=pandas.DataFrame(z[(z['flow']=='Net additions')&(z['case']=='ACC')&z['year'].isin(HISTORICAL_YEARS)&(z['product']=='Offshore wind')]).value
+offwind.index=HISTORICAL_YEARS
+hydro=pandas.DataFrame(z[(z['flow']=='Net additions')&(z['case']=='ACC')&z['year'].isin(HISTORICAL_YEARS)&(z['product']=='Hydro')]).value
+hydro.index=HISTORICAL_YEARS
+tmp=pandas.concat([solar_ac,onwind,offwind,hydro],axis=1)
+tmp.columns=['Utility-scale solar','Onshore wind','Offshore wind','Hydro']
 tmp.to_csv('./iea.csv')
 
 
@@ -31,13 +34,14 @@ pandas.DataFrame(z[(z['flow']=='Capacity')&(z['case']=='ACC')&z['year'].isin(ran
 
 # Tripling pathway additions used in the final chart.
 # Pull exact cells from tripling.xlsx, sheet "additions":
-# C48:C52 = utility-scale solar, F48:F52 = onshore wind, G48:G52 = offshore wind.
+# C48:C52 = utility-scale solar, F48:F52 = onshore wind, G48:G52 = offshore wind, H48:H52 = hydropower.
 tripling_additions=pandas.read_excel('./tripling.xlsx',sheet_name='additions',header=None)
 tripling_additions=pandas.DataFrame({
     'Year': range(2026,2031),
     'Utility-scale solar': tripling_additions.iloc[47:52,2].to_numpy(),
     'Onshore wind': tripling_additions.iloc[47:52,5].to_numpy(),
-    'Offshore wind': tripling_additions.iloc[47:52,6].to_numpy()
+    'Offshore wind': tripling_additions.iloc[47:52,6].to_numpy(),
+    'Hydro': tripling_additions.iloc[47:52,7].to_numpy()
 })
 tripling_additions.to_csv('./tripling_additions.csv',index=False)
 
@@ -80,7 +84,16 @@ offwind.loc['Total']=offwind.sum(axis=0)
 offwind=offwind.reset_index()
 offwind.index=['Offshore wind']*len(offwind)
 
-tmp=pandas.concat([solar,onwind,offwind],axis=0)
+hydro_mask = (gipt.Type == 'hydropower') & ~gipt.Technology.str.contains('pumped', case=False, na=False)
+hydro=pandas.concat([gipt[(gipt['Start year'].isin([2026,2027,2028,2029,2030]))&(gipt.Status.isin(status))&hydro_mask].groupby('Status')['Capacity (MW)'].sum()/1000,gipt[(gipt['Start year'].isnull())&(gipt.Status.isin(status))&hydro_mask].groupby('Status')['Capacity (MW)'].sum()/1000],axis=1)
+hydro.columns=['pre-2030','unknown']
+hydro=hydro.reindex(['announced','construction','pre-construction']).fillna(0)
+hydro.index=['Announced','Construction','Pre-construction']
+hydro.loc['Total']=hydro.sum(axis=0)
+hydro=hydro.reset_index()
+hydro.index=['Hydro']*len(hydro)
+
+tmp=pandas.concat([solar,onwind,offwind,hydro],axis=0)
 tmp.to_csv('./indev_total.csv')
 
 
@@ -99,7 +112,11 @@ offwind=(gipt[(gipt['Start year'].isin([2026,2027,2028,2029,2030]))&(gipt.Status
 offwind=offwind.reset_index()
 offwind.index=['Offshore wind']*len(offwind)
 
-tmp=pandas.concat([solar,onwind,offwind],axis=0)
+hydro=(gipt[(gipt['Start year'].isin([2026,2027,2028,2029,2030]))&(gipt.Status.isin(status))&hydro_mask].groupby(['Status','Start year'])['Capacity (MW)'].sum()/1000).unstack()
+hydro=hydro.reset_index()
+hydro.index=['Hydro']*len(hydro)
+
+tmp=pandas.concat([solar,onwind,offwind,hydro],axis=0)
 tmp.to_csv('./indev_annual.csv')
 
 

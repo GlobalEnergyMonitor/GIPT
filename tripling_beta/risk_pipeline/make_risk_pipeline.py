@@ -31,6 +31,7 @@ PROJECTS_SHEET_NAME = "Power facilities"
 
 BASE_ASSUMPTIONS_PATH = SCRIPT_DIR / "base_assumptions.csv"
 GEO_MULTIPLIERS_PATH = SCRIPT_DIR / "geography_multipliers.csv"
+CORRELATED_RISK_PATH = SCRIPT_DIR / "correlated_risk_assumptions.csv"
 
 PREPARED_OUTPUT = SCRIPT_DIR / "prepared_project_risk_inputs.csv"
 ANNUAL_RUN_OUTPUT = SCRIPT_DIR / "simulated_annual_additions_by_run.csv"
@@ -45,12 +46,19 @@ ANNUAL_TOTAL_BY_TECHNOLOGY_SUMMARY_OUTPUT = (
 ANNUAL_TOTAL_BY_TECHNOLOGY_DATE_KNOWN_SUMMARY_OUTPUT = (
     SCRIPT_DIR / "simulated_annual_additions_total_by_technology_date_known_summary.csv"
 )
+WINDOW_STATUS_SUMMARY_OUTPUT = SCRIPT_DIR / "simulated_2026_2030_additions_by_status_summary.csv"
+WINDOW_STATUS_DATE_KNOWN_SUMMARY_OUTPUT = (
+    SCRIPT_DIR / "simulated_2026_2030_additions_by_status_date_known_summary.csv"
+)
+WINDOW_TOTAL_BY_TECHNOLOGY_SUMMARY_OUTPUT = (
+    SCRIPT_DIR / "simulated_2026_2030_additions_total_by_technology_summary.csv"
+)
 RISK_D3_OUTPUT = SCRIPT_DIR / "risk_adjusted_tripling_d3_data.json"
 
 # Backwards-compatible alias in case older IDE selections refer to this name.
 ANNUAL_TECH_TOTAL_SUMMARY_OUTPUT = ANNUAL_TOTAL_BY_TECHNOLOGY_SUMMARY_OUTPUT
 
-SCENARIO = "central"
+SCENARIO_ORDER = ["low", "central", "high"]
 RUNS = 1000
 RANDOM_SEED = 42
 
@@ -109,8 +117,16 @@ def p10(x):
     return x.quantile(0.10)
 
 
+def p25(x):
+    return x.quantile(0.25)
+
+
 def p50(x):
     return x.quantile(0.50)
+
+
+def p75(x):
+    return x.quantile(0.75)
 
 
 def p90(x):
@@ -132,6 +148,7 @@ projects = pd.read_excel(
 
 base = pd.read_csv(BASE_ASSUMPTIONS_PATH)
 geo = pd.read_csv(GEO_MULTIPLIERS_PATH)
+correlated_risk = pd.read_csv(CORRELATED_RISK_PATH)
 
 
 # -------------------------------------------------------------------
@@ -161,6 +178,7 @@ if missing_base_cols:
     raise ValueError(f"Missing required base assumption columns: {missing_base_cols}")
 
 required_geo_cols = [
+    "scenario",
     "geography_key",
     "technology",
     "cancel_multiplier",
@@ -171,6 +189,24 @@ required_geo_cols = [
 missing_geo_cols = [c for c in required_geo_cols if c not in geo.columns]
 if missing_geo_cols:
     raise ValueError(f"Missing required geography multiplier columns: {missing_geo_cols}")
+
+required_correlated_cols = [
+    "scenario",
+    "technology",
+    "cancel_sensitivity",
+    "timing_sensitivity",
+    "global_shock_std",
+    "shock_min",
+    "shock_max",
+]
+
+missing_correlated_cols = [
+    c for c in required_correlated_cols if c not in correlated_risk.columns
+]
+if missing_correlated_cols:
+    raise ValueError(
+        f"Missing required correlated risk columns: {missing_correlated_cols}"
+    )
 
 
 # -------------------------------------------------------------------
@@ -282,6 +318,7 @@ numeric_base_cols = [
 for col in numeric_base_cols:
     base[col] = pd.to_numeric(base[col], errors="coerce")
 
+geo["scenario"] = normalize_key(geo["scenario"])
 geo["geography_key"] = clean_text_col(geo["geography_key"])
 geo["technology"] = clean_text_col(geo["technology"])
 geo["technology_key"] = normalize_key(geo["technology"])
@@ -295,42 +332,118 @@ numeric_geo_cols = [
 for col in numeric_geo_cols:
     geo[col] = pd.to_numeric(geo[col], errors="coerce")
 
+correlated_risk["scenario"] = normalize_key(correlated_risk["scenario"])
+correlated_risk["technology"] = clean_text_col(correlated_risk["technology"])
+correlated_risk["technology_key"] = normalize_key(correlated_risk["technology"])
+
+numeric_correlated_cols = [
+    "cancel_sensitivity",
+    "timing_sensitivity",
+    "global_shock_std",
+    "shock_min",
+    "shock_max",
+]
+
+for col in numeric_correlated_cols:
+    correlated_risk[col] = pd.to_numeric(correlated_risk[col], errors="coerce")
+
 
 # -------------------------------------------------------------------
 # 8. Merge assumptions and geography multipliers
 # -------------------------------------------------------------------
 
-base_scenario = base[base["scenario"] == SCENARIO].copy()
+available_base_scenarios = set(base["scenario"].dropna().unique())
+available_geo_scenarios = set(geo["scenario"].dropna().unique())
+available_correlated_scenarios = set(correlated_risk["scenario"].dropna().unique())
+scenario_names = [
+    scenario for scenario in SCENARIO_ORDER
+    if (
+        scenario in available_base_scenarios
+        or scenario in available_geo_scenarios
+        or scenario in available_correlated_scenarios
+    )
+]
+scenario_names.extend(
+    sorted(
+        (
+            available_base_scenarios
+            | available_geo_scenarios
+            | available_correlated_scenarios
+        )
+        - set(scenario_names)
+    )
+)
 
-if len(base_scenario) == 0:
-    available_scenarios = sorted(base["scenario"].dropna().unique())
-    raise ValueError(
-        f"No rows found in base_assumptions.csv for scenario '{SCENARIO}'. "
-        f"Available scenarios: {available_scenarios}"
+if not scenario_names:
+    raise ValueError("No scenarios found in base assumptions or geography multipliers.")
+
+model_frames = []
+
+for scenario_name in scenario_names:
+    base_scenario = base[base["scenario"] == scenario_name].copy()
+    geo_scenario = geo[geo["scenario"] == scenario_name].copy()
+    correlated_scenario = correlated_risk[
+        correlated_risk["scenario"] == scenario_name
+    ].copy()
+
+    if len(base_scenario) == 0:
+        raise ValueError(
+            f"No rows found in base_assumptions.csv for scenario '{scenario_name}'."
+        )
+
+    if len(geo_scenario) == 0:
+        raise ValueError(
+            f"No rows found in geography_multipliers.csv for scenario '{scenario_name}'."
+        )
+
+    if len(correlated_scenario) == 0:
+        raise ValueError(
+            "No rows found in correlated_risk_assumptions.csv "
+            f"for scenario '{scenario_name}'."
+        )
+
+    scenario_df = projects.merge(
+        base_scenario,
+        left_on=["technology_key", "Status", "date_known"],
+        right_on=["technology_key", "status", "date_known"],
+        how="left",
+        validate="many_to_one",
     )
 
-model_df = projects.merge(
-    base_scenario,
-    left_on=["technology_key", "Status", "date_known"],
-    right_on=["technology_key", "status", "date_known"],
-    how="left",
-    validate="many_to_one",
-)
+    scenario_df = scenario_df.merge(
+        geo_scenario[
+            [
+                "geography_key",
+                "technology_key",
+                "cancel_multiplier",
+                "delay_multiplier",
+                "remaining_time_multiplier",
+            ]
+        ],
+        on=["geography_key", "technology_key"],
+        how="left",
+        validate="many_to_one",
+    )
 
-model_df = model_df.merge(
-    geo[
-        [
-            "geography_key",
-            "technology_key",
-            "cancel_multiplier",
-            "delay_multiplier",
-            "remaining_time_multiplier",
-        ]
-    ],
-    on=["geography_key", "technology_key"],
-    how="left",
-    validate="many_to_one",
-)
+    scenario_df = scenario_df.merge(
+        correlated_scenario[
+            [
+                "technology_key",
+                "cancel_sensitivity",
+                "timing_sensitivity",
+                "global_shock_std",
+                "shock_min",
+                "shock_max",
+            ]
+        ],
+        on=["technology_key"],
+        how="left",
+        validate="many_to_one",
+    )
+
+    model_frames.append(scenario_df)
+
+model_df = pd.concat(model_frames, ignore_index=True)
 
 
 # -------------------------------------------------------------------
@@ -393,6 +506,22 @@ if len(missing_geo) > 0:
         .to_string(index=False)
     )
 
+missing_correlated = model_df[model_df["cancel_sensitivity"].isna()]
+
+if len(missing_correlated) > 0:
+    print("\nWARNING: Some projects did not match correlated risk assumptions.")
+    print(
+        missing_correlated
+        .groupby(["scenario", "model_technology"], dropna=False)
+        .agg(
+            rows=("GEM unit/phase ID", "count"),
+            capacity_mw=("Capacity (MW)", "sum"),
+        )
+        .reset_index()
+        .sort_values(["rows", "capacity_mw"], ascending=False)
+        .to_string(index=False)
+    )
+
 missing_capacity = model_df[model_df["Capacity (MW)"].isna()]
 
 if len(missing_capacity) > 0:
@@ -434,6 +563,11 @@ keep_cols = [
     "final_undated_remaining_min",
     "final_undated_remaining_mode",
     "final_undated_remaining_max",
+    "cancel_sensitivity",
+    "timing_sensitivity",
+    "global_shock_std",
+    "shock_min",
+    "shock_max",
 ]
 
 model_df[keep_cols].to_csv(PREPARED_OUTPUT, index=False)
@@ -465,6 +599,11 @@ missing_core_sim_inputs = model_df[
             "final_delay_min",
             "final_delay_mode",
             "final_delay_max",
+            "cancel_sensitivity",
+            "timing_sensitivity",
+            "global_shock_std",
+            "shock_min",
+            "shock_max",
         ]
     ].isna().any(axis=1)
 ]
@@ -528,6 +667,11 @@ undated_max = model_df["final_undated_remaining_max"].to_numpy(dtype=float)
 status = model_df["Status"].to_numpy(dtype=str)
 technology = model_df["model_technology"].to_numpy(dtype=str)
 scenario = model_df["scenario"].to_numpy(dtype=str)
+cancel_sensitivity = model_df["cancel_sensitivity"].to_numpy(dtype=float)
+timing_sensitivity = model_df["timing_sensitivity"].to_numpy(dtype=float)
+global_shock_std = model_df["global_shock_std"].to_numpy(dtype=float)
+shock_min = model_df["shock_min"].to_numpy(dtype=float)
+shock_max = model_df["shock_max"].to_numpy(dtype=float)
 
 delay_min, delay_mode, delay_max = clean_triangular_inputs(
     delay_min,
@@ -542,11 +686,41 @@ undated_min, undated_mode, undated_max = clean_triangular_inputs(
 )
 
 for run_id in range(1, RUNS + 1):
+    # 0. Draw one global delivery-environment shock per scenario for this run.
+    # Technologies respond differently through their sensitivity assumptions.
+    run_shocks = {
+        scenario_name: np.clip(
+            rng.normal(0, global_shock_std[scenario == scenario_name][0]),
+            shock_min[scenario == scenario_name][0],
+            shock_max[scenario == scenario_name][0],
+        )
+        for scenario_name in scenario_names
+    }
+    global_shock = np.array([run_shocks[s] for s in scenario])
+
+    run_cancel_prob = (
+        cancel_prob * (1 + global_shock * cancel_sensitivity)
+    ).clip(0, 0.95)
+
+    run_timing_multiplier = np.maximum(
+        0.05,
+        1 + global_shock * timing_sensitivity,
+    )
+
     # 1. Draw cancellation for every project.
-    cancelled = rng.random(n) < cancel_prob
+    cancelled = rng.random(n) < run_cancel_prob
 
     # 2. Draw additional delay for every project.
-    delay_draw = rng.triangular(delay_min, delay_mode, delay_max)
+    run_delay_min = delay_min * run_timing_multiplier
+    run_delay_mode = delay_mode * run_timing_multiplier
+    run_delay_max = delay_max * run_timing_multiplier
+    run_delay_min, run_delay_mode, run_delay_max = clean_triangular_inputs(
+        run_delay_min,
+        run_delay_mode,
+        run_delay_max,
+    )
+
+    delay_draw = rng.triangular(run_delay_min, run_delay_mode, run_delay_max)
     delay_years = np.maximum(0, np.rint(delay_draw).astype(int))
 
     delivery_year = np.full(n, np.nan)
@@ -561,10 +735,19 @@ for run_id in range(1, RUNS + 1):
     valid_unknown = unknown_mask & ~cancelled
     remaining_draw = np.full(n, np.nan)
 
+    run_undated_min = undated_min * run_timing_multiplier
+    run_undated_mode = undated_mode * run_timing_multiplier
+    run_undated_max = undated_max * run_timing_multiplier
+    run_undated_min, run_undated_mode, run_undated_max = clean_triangular_inputs(
+        run_undated_min,
+        run_undated_mode,
+        run_undated_max,
+    )
+
     remaining_draw[valid_unknown] = rng.triangular(
-        undated_min[valid_unknown],
-        undated_mode[valid_unknown],
-        undated_max[valid_unknown],
+        run_undated_min[valid_unknown],
+        run_undated_mode[valid_unknown],
+        run_undated_max[valid_unknown],
     )
 
     total_time_to_delivery = remaining_draw + delay_draw
@@ -665,7 +848,9 @@ annual_status_date_known_summary = (
     .agg(
         mean_mw=("capacity_mw", "mean"),
         p10_mw=("capacity_mw", p10),
+        p25_mw=("capacity_mw", p25),
         p50_mw=("capacity_mw", p50),
+        p75_mw=("capacity_mw", p75),
         p90_mw=("capacity_mw", p90),
     )
 )
@@ -685,7 +870,9 @@ annual_status_summary = (
     .agg(
         mean_mw=("capacity_mw", "mean"),
         p10_mw=("capacity_mw", p10),
+        p25_mw=("capacity_mw", p25),
         p50_mw=("capacity_mw", p50),
+        p75_mw=("capacity_mw", p75),
         p90_mw=("capacity_mw", p90),
     )
 )
@@ -702,7 +889,9 @@ annual_total_summary = (
     .agg(
         mean_mw=("capacity_mw", "mean"),
         p10_mw=("capacity_mw", p10),
+        p25_mw=("capacity_mw", p25),
         p50_mw=("capacity_mw", p50),
+        p75_mw=("capacity_mw", p75),
         p90_mw=("capacity_mw", p90),
     )
 )
@@ -722,7 +911,9 @@ annual_total_by_technology_date_known_summary = (
     .agg(
         mean_mw=("capacity_mw", "mean"),
         p10_mw=("capacity_mw", p10),
+        p25_mw=("capacity_mw", p25),
         p50_mw=("capacity_mw", p50),
+        p75_mw=("capacity_mw", p75),
         p90_mw=("capacity_mw", p90),
     )
 )
@@ -742,7 +933,78 @@ annual_total_by_technology_summary = (
     .agg(
         mean_mw=("capacity_mw", "mean"),
         p10_mw=("capacity_mw", p10),
+        p25_mw=("capacity_mw", p25),
         p50_mw=("capacity_mw", p50),
+        p75_mw=("capacity_mw", p75),
+        p90_mw=("capacity_mw", p90),
+    )
+)
+
+# Diagnostic cumulative chart:
+# Sum 2026-2030 annual deliveries by run, status, technology, and date-known
+# category, then summarise the simulated distribution.
+window_status_date_known = (
+    annual_full
+    .groupby(
+        ["scenario", "run_id", "status", "model_technology", "date_known"],
+        as_index=False,
+    )["capacity_mw"]
+    .sum()
+)
+
+window_status_date_known_summary = (
+    window_status_date_known
+    .groupby(["scenario", "status", "model_technology", "date_known"], as_index=False)
+    .agg(
+        mean_mw=("capacity_mw", "mean"),
+        p10_mw=("capacity_mw", p10),
+        p25_mw=("capacity_mw", p25),
+        p50_mw=("capacity_mw", p50),
+        p75_mw=("capacity_mw", p75),
+        p90_mw=("capacity_mw", p90),
+    )
+)
+
+window_status = (
+    annual_full
+    .groupby(
+        ["scenario", "run_id", "status", "model_technology"],
+        as_index=False,
+    )["capacity_mw"]
+    .sum()
+)
+
+window_status_summary = (
+    window_status
+    .groupby(["scenario", "status", "model_technology"], as_index=False)
+    .agg(
+        mean_mw=("capacity_mw", "mean"),
+        p10_mw=("capacity_mw", p10),
+        p25_mw=("capacity_mw", p25),
+        p50_mw=("capacity_mw", p50),
+        p75_mw=("capacity_mw", p75),
+        p90_mw=("capacity_mw", p90),
+    )
+)
+
+window_total_by_technology = (
+    annual_full
+    .groupby(
+        ["scenario", "run_id", "model_technology"],
+        as_index=False,
+    )["capacity_mw"]
+    .sum()
+)
+
+window_total_by_technology_summary = (
+    window_total_by_technology
+    .groupby(["scenario", "model_technology"], as_index=False)
+    .agg(
+        mean_mw=("capacity_mw", "mean"),
+        p10_mw=("capacity_mw", p10),
+        p25_mw=("capacity_mw", p25),
+        p50_mw=("capacity_mw", p50),
+        p75_mw=("capacity_mw", p75),
         p90_mw=("capacity_mw", p90),
     )
 )
@@ -794,7 +1056,9 @@ for scenario_name, scenario_rows in risk_status_window_summary.groupby("scenario
         date_key = "pre2030" if row["date_known"] == "known" else "unknown"
         d3_entry[status_key][date_key] = row["p50_mw"] / 1000
 
-    risk_d3_data["Global"] = d3_entry
+    risk_d3_data[scenario_name] = d3_entry
+    if scenario_name == "central":
+        risk_d3_data["Global"] = d3_entry
 
 
 # -------------------------------------------------------------------
@@ -816,6 +1080,15 @@ annual_total_by_technology_date_known_summary.to_csv(
     ANNUAL_TOTAL_BY_TECHNOLOGY_DATE_KNOWN_SUMMARY_OUTPUT,
     index=False,
 )
+window_status_summary.to_csv(WINDOW_STATUS_SUMMARY_OUTPUT, index=False)
+window_status_date_known_summary.to_csv(
+    WINDOW_STATUS_DATE_KNOWN_SUMMARY_OUTPUT,
+    index=False,
+)
+window_total_by_technology_summary.to_csv(
+    WINDOW_TOTAL_BY_TECHNOLOGY_SUMMARY_OUTPUT,
+    index=False,
+)
 
 with open(RISK_D3_OUTPUT, "w", encoding="utf-8") as f:
     json.dump(risk_d3_data, f, indent=2)
@@ -826,4 +1099,7 @@ print(f"Saved: {ANNUAL_STATUS_DATE_KNOWN_SUMMARY_OUTPUT}")
 print(f"Saved: {ANNUAL_TOTAL_SUMMARY_OUTPUT}")
 print(f"Saved: {ANNUAL_TOTAL_BY_TECHNOLOGY_SUMMARY_OUTPUT}")
 print(f"Saved: {ANNUAL_TOTAL_BY_TECHNOLOGY_DATE_KNOWN_SUMMARY_OUTPUT}")
+print(f"Saved: {WINDOW_STATUS_SUMMARY_OUTPUT}")
+print(f"Saved: {WINDOW_STATUS_DATE_KNOWN_SUMMARY_OUTPUT}")
+print(f"Saved: {WINDOW_TOTAL_BY_TECHNOLOGY_SUMMARY_OUTPUT}")
 print(f"Saved: {RISK_D3_OUTPUT}")

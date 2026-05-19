@@ -37,7 +37,7 @@
 
       <section class="content-block prose">
         <p>
-          According to independent analysis by the International Renewable Energy Agency (IRENA) and the International Energy Agency (IEA), reaching at least 11,000 gigawatts (GW) of renewable capacity by 2030 could deliver up to two-thirds of the emissions reductions needed by 2050 to keep a 1.5°C pathway within reach.
+          Tripling global renewable capacity to at least 11,000 gigawatts (GW) by 2030 could deliver up to two-thirds of the emissions reductions needed by 2050 to keep a 1.5°C pathway within reach, according to independent analysis by the International Renewable Energy Agency (IRENA) and the International Energy Agency (IEA).
         </p>
 
         <p>
@@ -45,7 +45,7 @@
         </p>
 
         <p>
-          Global Energy Monitor’s facility-level tracking across the energy sector provides a detailed view of progress toward this critical goal.
+          Global Energy Monitor’s (GEM's) facility-level tracking across the energy sector provides a detailed view of progress toward this critical goal.
         </p>
       </section>
 
@@ -70,7 +70,7 @@
         </p>
 
         <p>
-          If all are completed in time, the world could meet the tripling target. But delays, cancellations, project development cycles, and competing demand for power mean that outcome is far from certain.
+          If all are completed in time, the world would come within 800 GW of the tripling target. But delays, cancellations, and lengthy project development cycles mean that outcome is far from certain.
         </p>
 
         <p>
@@ -92,6 +92,52 @@
           </div>
         </div>
       </section>
+
+      <section class="content-block prose">
+        <p>
+          The exact delivery schedule for renewable energy projects in development is uncertain. However, GEM’s modelling of the renewables project pipeline provides an illustrative view of how current development capacity could contribute to 2030 renewable capacity goals, without treating the results as a project-level forecast.
+        </p>
+        <p>
+          The model runs many possible delivery pathways using transparent assumptions by technology, project status, and geography, producing a risk-adjusted range of annual capacity additions. The risk adjustment accounts for possible project cancellations, delays, and expected development timelines for projects without known start years.
+        </p>
+        <p>
+          The technology-level results below show the middle of the simulated range of renewable power capacity that could plausibly come online each year from 2026 to 2030.
+        </p>
+      </section>
+
+
+      <section class="content-block plotly-block" aria-label="Capacity by technology">
+        <!-- <h2 class="plotly-section-title">Tracking the utility-scale solar and wind pipeline against the tripling target</h2> -->
+
+        <div class="plotly-controls">
+          <label for="plotly-technology-select">Select technology:</label>
+          <select id="plotly-technology-select" disabled>
+            <option>Loading...</option>
+          </select>
+          <label class="risk-toggle" for="risk-adjusted-toggle">
+            <input type="checkbox" id="risk-adjusted-toggle" />
+            Show risk-adjusted projection
+          </label>
+        </div>
+
+        <div id="plotly-technology-note" class="plotly-technology-note" aria-live="polite"></div>
+
+        <div class="plotly-chart-grid">
+          <div class="plotly-chart-group">
+            <h3 class="plotly-figure-subtitle">Global capacity in development by status, in gigawatts (GW)</h3>
+            <div id="plotly-cumulative-chart" class="plotly-chart plotly-chart--compact" aria-label="Cumulative in-development capacity chart"></div>
+            <p id="plotly-cumulative-meta" class="plotly-meta"></p>
+          </div>
+
+          <div class="plotly-chart-group">
+            <h3 class="plotly-figure-subtitle">Annual capacity additions, historical and projected by development status, in gigawatts (GW)</h3>
+            <div id="plotly-annual-chart" class="plotly-chart" aria-label="Annual capacity additions chart"></div>
+            <p id="plotly-annual-meta" class="plotly-meta">2026-2030 capacity additions consistent with tripling derived from the IEA’s Net Zero Emissions by 2050 pathway, 2024 edition.</p>
+          </div>
+        </div>
+      </section>
+
+
 
       <section class="content-block prose">
         <p>
@@ -130,36 +176,7 @@
         </div>
       </section>
 
-      <section class="content-block plotly-block" aria-label="Capacity by technology">
-        <h2 class="plotly-section-title">Tracking the utility-scale solar and wind pipeline against the tripling target</h2>
 
-        <div class="plotly-controls">
-          <label for="plotly-technology-select">Select technology:</label>
-          <select id="plotly-technology-select" disabled>
-            <option>Loading...</option>
-          </select>
-          <label class="risk-toggle" for="risk-adjusted-toggle">
-            <input type="checkbox" id="risk-adjusted-toggle" />
-            Show risk-adjusted projection
-          </label>
-        </div>
-
-        <div id="plotly-technology-note" class="plotly-technology-note" aria-live="polite"></div>
-
-        <div class="plotly-chart-grid">
-          <div class="plotly-chart-group">
-            <h3 class="plotly-figure-subtitle">Global capacity in development by status, in gigawatts (GW)</h3>
-            <div id="plotly-cumulative-chart" class="plotly-chart plotly-chart--compact" aria-label="Cumulative in-development capacity chart"></div>
-            <p id="plotly-cumulative-meta" class="plotly-meta"></p>
-          </div>
-
-          <div class="plotly-chart-group">
-            <h3 class="plotly-figure-subtitle">Annual capacity additions, historical and projected by development status, in gigawatts (GW)</h3>
-            <div id="plotly-annual-chart" class="plotly-chart" aria-label="Annual capacity additions chart"></div>
-            <p id="plotly-annual-meta" class="plotly-meta">2026-2030 capacity additions consistent with tripling derived from the IEA’s Net Zero Emissions by 2050 pathway, 2024 edition.</p>
-          </div>
-        </div>
-      </section>
 
       <section class="content-block">
         <h2 class="plotly-section-title">Fossil fuel phaseout</h2>
@@ -243,6 +260,7 @@
     const INDEV_TOTAL_PATH = "./indev_total.csv";
     const TRIPLING_ADDITIONS_PATH = "./tripling_additions.csv";
     const RISK_STATUS_PATH = "./risk_pipeline/simulated_annual_additions_by_status_date_known_summary.csv";
+    const PUBLIC_RISK_SCENARIO = "central";
 
     const TECH_LABELS = {
       "Utility-scale solar": "Utility-scale solar",
@@ -422,7 +440,12 @@
           year: yearFromIeaRow(row),
           value: Number(row[technology])
         }))
-        .filter(d => Number.isFinite(d.year) && Number.isFinite(d.value))
+        .filter(d =>
+          Number.isFinite(d.year) &&
+          Number.isFinite(d.value) &&
+          d.year >= 2015 &&
+          d.year <= 2025
+        )
         .sort((a, b) => a.year - b.year);
 
       const annualTechRows = annualRows.filter(row => technologyFromRow(row) === technology);
@@ -473,6 +496,7 @@
 
       return riskStatusRows
         .map(row => ({
+          scenario: cleanText(row.scenario).toLowerCase(),
           year: Number(row.year),
           technology: cleanText(row.model_technology).toLowerCase(),
           status: normaliseStatus(row.status),
@@ -480,6 +504,7 @@
           value: Number(row.p50_mw) / 1000
         }))
         .filter(d =>
+          d.scenario === PUBLIC_RISK_SCENARIO &&
           d.technology === selectedTechnology &&
           d.year >= 2026 &&
           d.year <= 2030 &&
@@ -495,6 +520,7 @@
       const byStatus = new Map();
 
       riskStatusRows.forEach(row => {
+        const scenario = cleanText(row.scenario).toLowerCase();
         const year = Number(row.year);
         const rowTechnology = cleanText(row.model_technology).toLowerCase();
         const status = normaliseStatus(row.status);
@@ -502,6 +528,7 @@
         const value = Number(row.p50_mw) / 1000;
 
         if (
+          scenario !== PUBLIC_RISK_SCENARIO ||
           rowTechnology !== selectedTechnology ||
           year < 2026 ||
           year > 2030 ||
