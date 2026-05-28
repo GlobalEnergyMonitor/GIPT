@@ -104,6 +104,30 @@ def normalize_area(s):
     return AREA_ALIASES.get(s, s)
 
 
+CN_AREA_FALLBACKS = {
+    "\u5185\u8499\u53e4": "Inner Mongolia",
+    "\u8d35\u5dde": "Guizhou",
+}
+
+
+def normalize_area_from_cn(s):
+    if pd.isna(s):
+        return pd.NA
+    compact = str(s).strip()
+    compact = compact.replace("\uff08", "(").replace("\uff09", ")")
+    compact = re.sub(r"[\s\u3000\*\(\)]+", "", compact)
+    if "\u65b0\u7586" in compact and "\u5175\u56e2" in compact:
+        return "Xinjiang (Including Corps)"
+    return CN_AREA_FALLBACKS.get(compact, pd.NA)
+
+
+def infer_area_key(province_en, province_cn):
+    area_key = normalize_area(province_en)
+    if not pd.isna(area_key):
+        return area_key
+    return normalize_area_from_cn(province_cn)
+
+
 PROVINCE_CN_TO_EN = {
     "总计": "Total",
     "北京": "Beijing",
@@ -354,8 +378,7 @@ def append_xinjiang_including_corps(df, value_cols):
 
     include_key = "Xinjiang (Including Corps)"
     component_keys = {"Xinjiang", "Xinjiang Production and Construction Corps"}
-    base = df[~df["area_key"].eq(include_key)].copy()
-    components = base[base["area_key"].isin(component_keys)].copy()
+    components = df[df["area_key"].isin(component_keys)].copy()
     if components.empty:
         return df
 
@@ -374,7 +397,20 @@ def append_xinjiang_including_corps(df, value_cols):
 
     ordered_cols = [c for c in df.columns if c in derived.columns]
     derived = derived[ordered_cols]
-    return pd.concat([base, derived], ignore_index=True, sort=False)
+    derived_keys = derived[group_cols].drop_duplicates()
+    original_without_replaced = df.merge(
+        derived_keys.assign(_replace_xj_include=True),
+        on=group_cols,
+        how="left",
+    )
+    original_without_replaced = original_without_replaced[
+        ~(
+            original_without_replaced["area_key"].eq(include_key)
+            & original_without_replaced["_replace_xj_include"].notna()
+        )
+    ].drop(columns=["_replace_xj_include"])
+
+    return pd.concat([original_without_replaced, derived], ignore_index=True, sort=False)
 
 
 def append_derived_periods_from_additions(scraped, additions):
@@ -424,6 +460,182 @@ def append_derived_periods_from_additions(scraped, additions):
     ].drop(columns=["_replace"])
 
     return pd.concat([scraped_without_replaced, derived], ignore_index=True, sort=False)
+
+
+def append_derived_distributed_from_total_and_utility(scraped):
+    if scraped.empty:
+        return scraped
+
+    key_cols = ["period", "year", "checkpoint", "area_key"]
+    totals = scraped[scraped["category"].eq("Total")].copy()
+    utility = scraped[scraped["category"].eq("Utility-scale")].copy()
+    distributed = scraped[scraped["category"].eq("Total distributed")].copy()
+    if totals.empty or utility.empty:
+        return scraped
+
+    existing_distributed_keys = set(
+        distributed.dropna(subset=["scraped_10kw"])[["period", "area_key"]]
+        .astype({"period": str})
+        .itertuples(index=False, name=None)
+    )
+
+    merged = totals.merge(
+        utility[key_cols + ["scraped_10kw"]],
+        on=key_cols,
+        how="inner",
+        suffixes=("_total", "_utility"),
+    )
+    merged["period"] = merged["period"].astype(str)
+    merged = merged[
+        ~merged[["period", "area_key"]].apply(tuple, axis=1).isin(existing_distributed_keys)
+    ].copy()
+    if merged.empty:
+        return scraped
+
+    merged["derived_10kw"] = merged["scraped_10kw_total"] - merged["scraped_10kw_utility"]
+    merged = merged[merged["derived_10kw"].notna() & (merged["derived_10kw"] >= -0.01)].copy()
+    if merged.empty:
+        return scraped
+
+    derived = pd.DataFrame({
+        "period": merged["period"],
+        "year": merged["year"],
+        "checkpoint": merged["checkpoint"],
+        "area_key": merged["area_key"],
+        "province_cn": merged["province_cn"],
+        "province_en": merged["province_en"],
+        "category": "Total distributed",
+        "scraped_10kw": merged["derived_10kw"].clip(lower=0),
+        "scraped_gw": merged["derived_10kw"].clip(lower=0) / 100,
+        "source_page_url": "derived: cumulative total - cumulative utility-scale",
+        "source_file": "derived_distributed_from_total_minus_utility",
+    })
+
+    return pd.concat([scraped, derived[scraped.columns]], ignore_index=True, sort=False)
+
+
+def append_derived_household_cumulative_from_additions(scraped, additions):
+    if scraped.empty or additions.empty:
+        return scraped
+
+    hh_additions = additions[additions["category"].eq("Households")].copy()
+    if hh_additions.empty:
+        return scraped
+
+    hh_cumulative = scraped[scraped["category"].eq("Households")].copy()
+    if hh_cumulative.empty:
+        return scraped
+
+    hh_additions["period"] = hh_additions["period"].astype(str)
+    hh_cumulative["period"] = hh_cumulative["period"].astype(str)
+
+    addition_by_key = {
+        (row.area_key, row.period): row.scraped_addition_10kw
+        for row in hh_additions.itertuples()
+        if pd.notna(row.scraped_addition_10kw)
+    }
+    template_by_key = {
+        (row.area_key, row.period): row
+        for row in hh_additions.itertuples()
+    }
+
+    cumulative_by_key = {}
+    cumulative_source_by_key = {}
+    for row in hh_cumulative.itertuples():
+        if pd.isna(row.scraped_10kw):
+            continue
+        period = str(row.period)
+        # Cumulative household capacity is reliably present from 2023 H1 onward.
+        # Earlier zero-filled rows are placeholders from older layouts and should
+        # not anchor the derivation.
+        if period >= "202306":
+            cumulative_by_key[(row.area_key, period)] = row.scraped_10kw
+            cumulative_source_by_key[(row.area_key, period)] = period
+
+    changed = True
+    while changed:
+        changed = False
+        for (area_key, period), cumulative_10kw in list(cumulative_by_key.items()):
+            addition_10kw = addition_by_key.get((area_key, period))
+            if pd.isna(addition_10kw):
+                continue
+
+            prior_period = f"{int(period[:4]) - 1}12"
+            prior_key = (area_key, prior_period)
+            source_period = cumulative_source_by_key[(area_key, period)]
+            if (
+                prior_key in cumulative_by_key
+                and cumulative_source_by_key[prior_key] <= source_period
+            ):
+                continue
+
+            cumulative_by_key[prior_key] = cumulative_10kw - addition_10kw
+            cumulative_source_by_key[prior_key] = source_period
+            changed = True
+
+    for (area_key, period), addition_10kw in addition_by_key.items():
+        if period < "202112":
+            continue
+
+        prior_period = f"{int(period[:4]) - 1}12"
+        prior_cumulative = cumulative_by_key.get((area_key, prior_period))
+        if prior_cumulative is None or pd.isna(prior_cumulative):
+            continue
+
+        cumulative_by_key.setdefault((area_key, period), prior_cumulative + addition_10kw)
+
+    existing_by_key = {
+        (row.area_key, str(row.period)): row.scraped_10kw
+        for row in hh_cumulative.itertuples()
+    }
+    derived_rows = []
+    for (area_key, period), value_10kw in sorted(cumulative_by_key.items()):
+        if period < "202112" or period >= "202306":
+            continue
+        if pd.isna(value_10kw) or value_10kw < -0.01:
+            continue
+
+        existing_10kw = existing_by_key.get((area_key, period))
+        if pd.notna(existing_10kw) and existing_10kw > 0:
+            continue
+
+        template = template_by_key.get((area_key, period))
+        if template is None:
+            continue
+
+        derived_rows.append({
+            "period": period,
+            "year": int(period[:4]),
+            "checkpoint": checkpoint_from_period(period),
+            "area_key": area_key,
+            "province_cn": template.province_cn,
+            "province_en": template.province_en,
+            "category": "Households",
+            "scraped_10kw": max(0, value_10kw),
+            "scraped_gw": max(0, value_10kw) / 100,
+            "source_page_url": (
+                "derived: prior year-end household cumulative + "
+                f"{period} residential additions"
+            ),
+            "source_file": f"derived_households_{period}",
+        })
+
+    if not derived_rows:
+        return scraped
+
+    derived = pd.DataFrame(derived_rows)
+    key_cols = ["period", "area_key", "category"]
+    derived_keys = derived[key_cols].drop_duplicates()
+    scraped_without_replaced = scraped.merge(
+        derived_keys.assign(_replace=True),
+        on=key_cols,
+        how="left",
+    )
+    scraped_without_replaced = scraped_without_replaced[
+        scraped_without_replaced["_replace"].isna()
+    ].drop(columns=["_replace"])
+
+    return pd.concat([scraped_without_replaced, derived[scraped.columns]], ignore_index=True, sort=False)
 
 
 def clean_numeric_series(series):
@@ -548,7 +760,10 @@ def load_scraped_long():
             part["checkpoint"] = item["checkpoint"]
             part["source_page_url"] = item["source_page_url"]
             part["source_file"] = path.name
-            part["area_key"] = part["province_en"].apply(normalize_area)
+            part["area_key"] = part.apply(
+                lambda row: infer_area_key(row["province_en"], row["province_cn"]),
+                axis=1,
+            )
             records.append(part)
 
         for category, value_col in CATEGORY_TO_NEW_SCRAPED_COLUMN.items():
@@ -566,7 +781,10 @@ def load_scraped_long():
             part["checkpoint"] = item["checkpoint"]
             part["source_page_url"] = item["source_page_url"]
             part["source_file"] = path.name
-            part["area_key"] = part["province_en"].apply(normalize_area)
+            part["area_key"] = part.apply(
+                lambda row: infer_area_key(row["province_en"], row["province_cn"]),
+                axis=1,
+            )
             addition_records.append(part)
 
     if not records:
@@ -587,7 +805,14 @@ def load_scraped_long():
         "source_file",
     ]
     scraped = scraped[cols]
+    scraped = scraped[
+        ~(
+            scraped["category"].eq("Households")
+            & scraped["period"].astype(str).lt("202112")
+        )
+    ].copy()
     scraped = replace_period_rows(scraped, load_cep_201806_long(), "201806")
+    scraped = append_derived_distributed_from_total_and_utility(scraped)
     scraped = append_xinjiang_including_corps(scraped, ["scraped_10kw", "scraped_gw"])
 
     if addition_records:
@@ -596,6 +821,7 @@ def load_scraped_long():
             additions,
             ["scraped_addition_10kw", "scraped_addition_gw"],
         )
+        scraped = append_derived_household_cumulative_from_additions(scraped, additions)
         scraped = append_derived_periods_from_additions(scraped, additions)
 
     return scraped[cols], unmatched

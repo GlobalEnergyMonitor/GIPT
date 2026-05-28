@@ -8,8 +8,7 @@ The core source is the National Energy Administration (NEA) provincial solar PV 
 
 - `process.py` scrapes NEA source pages, downloads and stitches table images, extracts tables with OCR/OpenAI Vision or inline HTML parsing, cleans province-level values, and writes review files.
 - `compare_nea_solar_detail.py` compares cleaned scraped outputs against the existing reference dataset, builds cross-check reports, and compiles the cleaned data into a wide format.
-- `beta page/` contains a beta visualization page for exploring provincial PV capacity by period, province, and installation type.
-- `public/` contains the static files deployed to GitHub Pages.
+- `public/` contains the static files deployed to GitHub Pages, including the beta visualization page.
 
 ## Key Outputs
 
@@ -31,9 +30,7 @@ Other useful outputs include:
 
 ## Beta Visualization
 
-The `public/beta/` folder contains the deployed beta visualization webpage. It loads `public/data/scraped_wide.csv` and renders summary stats, narrative bullets, charts, and a schematic province map of solar PV capacity and installation type.
-
-Use `public/beta/` as the source of truth for webpage edits. The older `beta page/` folder is only a local mirror; run `.\sync_beta_page.ps1` from this folder if you want to refresh that mirror.
+The `public/beta/` folder contains the deployed beta visualization webpage and is the source of truth for webpage edits. It loads `public/data/scraped_wide.csv` and renders summary stats, narrative bullets, charts, and a schematic province map of solar PV capacity and installation type.
 
 ## GitHub Pages
 

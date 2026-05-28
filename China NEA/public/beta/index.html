@@ -103,7 +103,7 @@
         <div>
           <h2>Cumulative installed capacity</h2>
           <p>
-            Utility-scale, household distributed, and non-household distributed capacity, in gigwatts (GW).
+            Utility-scale and distributed capacity, in gigawatts (GW). Earlier periods show total distributed capacity where the household split is unavailable.
           </p>
         </div>
 
@@ -155,12 +155,31 @@
 
     <section class="section">
       <div class="section-heading">
-        <h2>Provincal solar capacity profile</h2>
+        <h2>Provincial solar capacity profile</h2>
         <p>
           Provinces further right have larger solar fleets; provinces higher up are more distributed-heavy.
-          Bubble size shows recent total growth.
+          Bubble size shows growth since the previous available period.
         </p>
       </div>
+
+      <div class="profile-controls">
+        <button id="scatter-play-button" class="profile-play-button" type="button" aria-label="Play profile animation">Play</button>
+
+        <div>
+          <label for="scatter-time-slider">Selected period</label>
+          <div id="scatter-period-label" class="map-period-label">-</div>
+        </div>
+
+        <div class="slider-wrap">
+          <input id="scatter-time-slider" type="range" min="0" max="0" step="1" value="0" />
+          <div class="slider-labels">
+            <span id="scatter-slider-start">-</span>
+            <span id="scatter-slider-end">-</span>
+          </div>
+        </div>
+      </div>
+
+      <p id="scatter-period-note" class="map-note">Loading profile...</p>
 
       <div id="chart-scatter" class="chart"></div>
     </section>

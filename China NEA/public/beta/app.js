@@ -30,6 +30,7 @@ const COLORS = {
   nonHousehold: GEM_PALETTE.mint,
   household: GEM_PALETTE.yellow,
   distributed: GEM_PALETTE.mint,
+  distributedUnsplit: "#7ecfbd",
   total: GEM_PALETTE.deepBlue,
 
   utilityShareVeryLow: GEM_PALETTE.paleMint,
@@ -133,6 +134,8 @@ const isYearEnd = col => col.endsWith("12");
 
 let columnChartPeriodMode = "annual";
 let columnChartContext = null;
+let scatterProfileContext = null;
+let scatterAnimationTimer = null;
 
 Papa.parse(DATA_PATH, {
   download: true,
@@ -236,8 +239,31 @@ function derivedNonHousehold(area, col, lookup) {
   const distributed = getValue(area, "Total distributed", col, lookup);
   const household = getValue(area, "Households", col, lookup);
 
-  if (distributed === null || household === null) return null;
-  return distributed - household;
+  return splitDistributedCapacity(distributed, household).nonHousehold;
+}
+
+function splitDistributedCapacity(distributed, household) {
+  if (distributed === null) {
+    return {
+      nonHousehold: null,
+      distributedUnsplit: null,
+      hasHouseholdBreakout: false
+    };
+  }
+
+  if (household === null) {
+    return {
+      nonHousehold: null,
+      distributedUnsplit: distributed,
+      hasHouseholdBreakout: false
+    };
+  }
+
+  return {
+    nonHousehold: Math.max(0, distributed - household),
+    distributedUnsplit: null,
+    hasHouseholdBreakout: true
+  };
 }
 
 function makeAreaSeries(area, cols, lookup) {
@@ -246,7 +272,7 @@ function makeAreaSeries(area, cols, lookup) {
     const utility = getValue(area, "Utility-scale", col, lookup);
     const distributed = getValue(area, "Total distributed", col, lookup);
     const household = getValue(area, "Households", col, lookup);
-    const nonHousehold = derivedNonHousehold(area, col, lookup);
+    const distributedSplit = splitDistributedCapacity(distributed, household);
 
     return {
       col,
@@ -256,7 +282,9 @@ function makeAreaSeries(area, cols, lookup) {
       utility,
       distributed,
       household,
-      nonHousehold
+      nonHousehold: distributedSplit.nonHousehold,
+      distributedUnsplit: distributedSplit.distributedUnsplit,
+      hasHouseholdBreakout: distributedSplit.hasHouseholdBreakout
     };
   });
 }
@@ -281,10 +309,10 @@ function makeLatestProvinceRecord(area, latestCol, lookup) {
     distributed,
     household,
     nonHousehold,
-    utilityShare: total ? utility / total : null,
-    distributedShare: total ? distributed / total : null,
-    householdShareTotal: total ? household / total : null,
-    householdShareDistributed: distributed ? household / distributed : null
+    utilityShare: total && utility !== null ? utility / total : null,
+    distributedShare: total && distributed !== null ? distributed / total : null,
+    householdShareTotal: total && household !== null ? household / total : null,
+    householdShareDistributed: distributed && household !== null ? household / distributed : null
   };
 }
 
@@ -623,7 +651,7 @@ function renderCharts(national, latestProvinceRows, growthProvinceRows, lookup, 
   setupAreaSelect("#area-additions-select", provinces, renderColumnCharts);
   renderColumnCharts();
   renderProvinceMix(latestProvinceRows);
-  renderScatter(latestProvinceRows, growthProvinceRows);
+  setupScatterTimeline(lookup, availableTimeCols, provinces);
 }
 
 function setupAreaSelect(selector, provinces, onChange) {
@@ -725,6 +753,14 @@ function renderNationalStack(national, area = "Total", periodMode = "annual") {
     },
     {
       x,
+      y: national.map(d => d.distributedUnsplit),
+      name: "Distributed total",
+      type: "bar",
+      marker: { color: COLORS.distributedUnsplit },
+      hovertemplate: "%{x}<br>%{y:.1f} GW<br>Household split unavailable<extra></extra>"
+    },
+    {
+      x,
       y: national.map(d => d.nonHousehold),
       name: "Distributed non-household",
       type: "bar",
@@ -764,13 +800,15 @@ function renderNationalStack(national, area = "Total", periodMode = "annual") {
 function renderAnnualAdditions(national, area = "Total", periodMode = "annual") {
   const additions = national.slice(1).map((d, i) => {
     const prev = national[i];
+    const bothHaveHouseholdBreakout = d.hasHouseholdBreakout && prev.hasHouseholdBreakout;
 
     return {
       col: d.col,
       year: d.year,
       utility: safeChange(d.utility, prev.utility),
-      nonHousehold: safeChange(d.nonHousehold, prev.nonHousehold),
-      household: safeChange(d.household, prev.household),
+      distributedUnsplit: bothHaveHouseholdBreakout ? null : safeChange(d.distributed, prev.distributed),
+      nonHousehold: bothHaveHouseholdBreakout ? safeChange(d.nonHousehold, prev.nonHousehold) : null,
+      household: bothHaveHouseholdBreakout ? safeChange(d.household, prev.household) : null,
       total: safeChange(d.total, prev.total)
     };
   });
@@ -784,6 +822,14 @@ function renderAnnualAdditions(national, area = "Total", periodMode = "annual") 
       name: "Utility-scale",
       type: "bar",
       marker: { color: COLORS.utility }
+    },
+    {
+      x,
+      y: additions.map(d => d.distributedUnsplit),
+      name: "Distributed total",
+      type: "bar",
+      marker: { color: COLORS.distributedUnsplit },
+      hovertemplate: "%{x}<br>%{y:.1f} GW added<br>Household split unavailable<extra></extra>"
     },
     {
       x,
@@ -864,26 +910,157 @@ function renderProvinceMix(latestProvinceRows) {
   }), baseConfig());
 }
 
-function renderScatter(latestProvinceRows, growthProvinceRows) {
-  const growthByArea = new Map(growthProvinceRows.map(d => [d.area, d]));
+function setupScatterTimeline(lookup, timeCols, provinces) {
+  stopScatterAnimation();
 
-  const data = latestProvinceRows
-    .filter(d => d.total > 0 && d.distributedShare !== null && d.utilityShare !== null)
-    .map(d => ({
-      ...d,
-      growth: growthByArea.get(d.area)?.totalGrowth ?? 0
-    }));
+  const slider = document.querySelector("#scatter-time-slider");
+  const startLabel = document.querySelector("#scatter-slider-start");
+  const endLabel = document.querySelector("#scatter-slider-end");
+  const playButton = document.querySelector("#scatter-play-button");
+  if (!slider || !timeCols.length) return;
 
+  scatterProfileContext = {
+    lookup,
+    timeCols,
+    provinces,
+    maxTotal: maxProvinceTotal(provinces, timeCols, lookup)
+  };
+
+  slider.min = 0;
+  slider.max = timeCols.length - 1;
+  slider.step = 1;
+  slider.value = timeCols.length - 1;
+
+  if (startLabel) startLabel.textContent = parseTimeLabel(timeCols[0]);
+  if (endLabel) endLabel.textContent = parseTimeLabel(timeCols[timeCols.length - 1]);
+
+  slider.oninput = event => {
+    stopScatterAnimation();
+    updateScatterProfile(Number(event.target.value));
+  };
+
+  if (playButton) {
+    playButton.onclick = () => {
+      if (scatterAnimationTimer) {
+        stopScatterAnimation();
+      } else {
+        startScatterAnimation();
+      }
+    };
+  }
+
+  updateScatterProfile(Number(slider.value), false);
+}
+
+function maxProvinceTotal(provinces, timeCols, lookup) {
+  return Math.max(
+    1,
+    ...provinces.flatMap(area =>
+      timeCols.map(col => getValue(area, "Total", col, lookup) || 0)
+    )
+  );
+}
+
+function startScatterAnimation() {
+  if (!scatterProfileContext || scatterAnimationTimer) return;
+
+  setScatterPlayState(true);
+  scatterAnimationTimer = window.setInterval(() => {
+    const slider = document.querySelector("#scatter-time-slider");
+    if (!slider) {
+      stopScatterAnimation();
+      return;
+    }
+
+    const next = Number(slider.value) >= Number(slider.max)
+      ? 0
+      : Number(slider.value) + 1;
+
+    slider.value = next;
+    updateScatterProfile(next);
+  }, 900);
+}
+
+function stopScatterAnimation() {
+  if (scatterAnimationTimer) {
+    window.clearInterval(scatterAnimationTimer);
+    scatterAnimationTimer = null;
+  }
+  setScatterPlayState(false);
+}
+
+function setScatterPlayState(isPlaying) {
+  const playButton = document.querySelector("#scatter-play-button");
+  if (!playButton) return;
+
+  playButton.textContent = isPlaying ? "Pause" : "Play";
+  playButton.classList.toggle("is-active", isPlaying);
+}
+
+function updateScatterProfile(index, animate = true) {
+  if (!scatterProfileContext) return;
+
+  const { lookup, timeCols, provinces } = scatterProfileContext;
+  const clampedIndex = Math.max(0, Math.min(index, timeCols.length - 1));
+  const col = timeCols[clampedIndex];
+  const previousCol = clampedIndex > 0 ? timeCols[clampedIndex - 1] : null;
+  const data = makeScatterProfileRows(col, previousCol, lookup, provinces);
+
+  const periodLabel = document.querySelector("#scatter-period-label");
+  if (periodLabel) periodLabel.textContent = parseTimeLabel(col);
+
+  const periodNote = document.querySelector("#scatter-period-note");
+  if (periodNote) {
+    const growthText = previousCol
+      ? `growth since ${parseTimeLabel(previousCol)}`
+      : "initial observed capacity";
+    periodNote.textContent = `${data.length} provinces shown; bubble size shows ${growthText}.`;
+  }
+
+  renderScatter(data, col, previousCol, animate);
+}
+
+function makeScatterProfileRows(col, previousCol, lookup, provinces) {
+  return provinces
+    .map(area => {
+      const record = makeLatestProvinceRecord(area, col, lookup);
+      const previous = previousCol ? makeLatestProvinceRecord(area, previousCol, lookup) : null;
+      return {
+        ...record,
+        growth: previous ? safeChange(record.total, previous.total) : record.total
+      };
+    })
+    .filter(d => d.total > 0 && d.distributedShare !== null && d.utilityShare !== null);
+}
+
+function fmtHoverGW(value) {
+  return value === null || value === undefined || Number.isNaN(value)
+    ? "n/a"
+    : `${Number(value).toFixed(1)} GW`;
+}
+
+function fmtHoverPct(value) {
+  return value === null || value === undefined || Number.isNaN(value)
+    ? "n/a"
+    : `${Number(value).toFixed(1)}%`;
+}
+
+function renderScatter(data, col, previousCol, animate = true) {
+  const growthLabel = previousCol
+    ? `Growth since ${parseTimeLabel(previousCol)}`
+    : "Initial observed capacity";
   const trace = {
     x: data.map(d => d.total),
     y: data.map(d => 100 * d.distributedShare),
     text: data.map(d => d.area),
     customdata: data.map(d => [
-      d.utility,
-      d.distributed,
-      d.household,
-      d.growth,
-      100 * d.utilityShare
+      fmtHoverGW(d.utility),
+      fmtHoverGW(d.distributed),
+      fmtHoverGW(d.household),
+      fmtHoverGW(d.growth),
+      fmtHoverPct(100 * d.utilityShare),
+      parseTimeLabel(col),
+      growthLabel
     ]),
     mode: "markers+text",
     type: "scatter",
@@ -893,7 +1070,7 @@ function renderScatter(latestProvinceRows, growthProvinceRows) {
       color: "#1f2933"
     },
     marker: {
-      size: data.map(d => Math.max(9, Math.sqrt(Math.max(d.growth, 1)) * 3.2)),
+      size: data.map(d => Math.max(9, Math.sqrt(Math.max(d.growth || 0, 0.15)) * 4.2)),
       color: data.map(d => d.utilityShare),
       cmin: 0,
       cmax: 1,
@@ -919,28 +1096,40 @@ function renderScatter(latestProvinceRows, growthProvinceRows) {
     },
     hovertemplate:
       "<b>%{text}</b><br>" +
+      "Period: %{customdata[5]}<br>" +
       "Total: %{x:.1f} GW<br>" +
       "Distributed share: %{y:.1f}%<br>" +
-      "Utility share: %{customdata[4]:.1f}%<br>" +
-      "Utility-scale: %{customdata[0]:.1f} GW<br>" +
-      "Distributed: %{customdata[1]:.1f} GW<br>" +
-      "Households: %{customdata[2]:.1f} GW<br>" +
-      "Recent total growth: %{customdata[3]:.1f} GW<br>" +
+      "Utility share: %{customdata[4]}<br>" +
+      "Utility-scale: %{customdata[0]}<br>" +
+      "Distributed: %{customdata[1]}<br>" +
+      "Households: %{customdata[2]}<br>" +
+      "%{customdata[6]}: %{customdata[3]}<br>" +
       "<extra></extra>"
   };
 
-  Plotly.newPlot("chart-scatter", [trace], baseLayout({
+  Plotly.react("chart-scatter", [trace], baseLayout({
+    title: {
+      text: parseTimeLabel(col),
+      x: 0,
+      xanchor: "left",
+      font: {
+        size: 14
+      }
+    },
     xaxis: {
-      title: "Latest total PV capacity, GW",
+      title: "Total PV capacity, GW",
       gridcolor: "#ebe8df",
-      zerolinecolor: "#cfcabe"
+      zerolinecolor: "#cfcabe",
+      range: [0, scatterProfileContext.maxTotal * 1.08]
     },
     yaxis: {
       title: "Distributed share of total PV, %",
       gridcolor: "#ebe8df",
-      zerolinecolor: "#cfcabe"
+      zerolinecolor: "#cfcabe",
+      range: [0, 100]
     },
-    margin: { l: 64, r: 92, t: 20, b: 60 }
+    margin: { l: 64, r: 92, t: 34, b: 60 },
+    transition: animate ? { duration: 450, easing: "cubic-in-out" } : undefined
   }), baseConfig());
 }
 
