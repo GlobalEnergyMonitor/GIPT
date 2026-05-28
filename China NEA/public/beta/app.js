@@ -198,7 +198,7 @@ function initialise(rawRows) {
     .filter(d => d.totalGrowth !== null)
     .sort((a, b) => b.totalGrowth - a.totalGrowth);
 
-  updateStatus(rows, provinces, startCol, latestCol);
+  updateStatus(rows, provinces, startCol, latestAvailableCol);
   renderStats(national, startCol, latestCol);
   renderBullets(national, latestProvinceRows, growthProvinceRows, baselineCol, latestCol);
   renderD3ProvinceMap(lookup, availableTimeCols, latestAvailableCol);

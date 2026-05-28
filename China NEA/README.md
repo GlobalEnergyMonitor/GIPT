@@ -2,7 +2,7 @@
 
 This folder contains a working pipeline for collecting, cleaning, checking, and visualizing provincial solar PV capacity data for China.
 
-The core source is the National Energy Administration (NEA) provincial solar PV [table](nea_provincial_pv_source_pages_structured_2016_2025.csv) series. The workflow also uses selected supporting sources where needed to fill or cross-check historical gaps, such as [China Energy Portal for 2018 H1 data](https://chinaenergyportal.org/en/2018-q12-pv-installations-utility-and-distributed-by-province/).
+The core source is the National Energy Administration (NEA) provincial solar PV [table](nea_provincial_pv_source_pages_structured_2016_2026.csv) series. The workflow also uses selected supporting sources where needed to fill or cross-check historical gaps, such as [China Energy Portal for 2018 H1 data](https://chinaenergyportal.org/en/2018-q12-pv-installations-utility-and-distributed-by-province/).
 
 ## Main Workflow
 

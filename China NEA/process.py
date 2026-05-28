@@ -70,6 +70,10 @@ import base64
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
 import pandas as pd
 import requests
 import cv2
@@ -108,6 +112,7 @@ for d in [BASE_DIR, OUTPUTS_DIR, RAW_IMAGES_DIR, STITCHED_DIR, RAW_TABLES_DIR, R
 # ============================================================
 # Fallback/testing list. Used only when URLS_CSV is None.
 URLS = [
+    "https://www.nea.gov.cn/20260519/6008bb88dc0649e5b5530fd6ad0b117a/c.html",
     "https://www.nea.gov.cn/20260305/4216fa1274bd4b7f8da92090ba3999aa/c.html",
     "https://www.nea.gov.cn/20251112/35126d06a151461882b61d0a2e5706a6/c.html",
     "https://www.nea.gov.cn/20250811/b32802d80ef04148b704e6bc1cd51eb2/c.html",
@@ -120,13 +125,21 @@ URLS = [
 
 # Use the full structured URL manifest by default.
 # It should contain column 'url' or 'source_page_url'.
-URLS_CSV = BASE_DIR / "nea_provincial_pv_source_pages_structured_2016_2025.csv"
+URLS_CSV = BASE_DIR / "nea_provincial_pv_source_pages_structured_2016_2026.csv"
 
 # Step 10 toggle. When True, only rerun URLs marked failed in outputs/logs/run_summary.csv.
 # Existing successful rows are kept in run_summary.csv and failed rows are replaced
 # as they are retried.
 RERUN_ONLY_FAILED_FROM_RUN_SUMMARY = False
 FORCE_RERUN_URLS = []
+ENV_FORCE_RERUN_URLS = os.getenv("NEA_FORCE_RERUN_URLS", "")
+if ENV_FORCE_RERUN_URLS.strip():
+    FORCE_RERUN_URLS = [
+        url.strip()
+        for url in re.split(r"[,\s]+", ENV_FORCE_RERUN_URLS)
+        if url.strip()
+    ]
+force_rerun_urls = set(FORCE_RERUN_URLS)
 # Example:
 # FORCE_RERUN_URLS = [
 #     "https://www.nea.gov.cn/2021-04/27/c_139910029.htm",
@@ -146,7 +159,7 @@ MIN_CONFIDENCE = 50
 TOTAL_LABEL = "总计"
 EXPECTED_N_COLS = 9
 INLINE_TABLE_PARSER_VERSION = "html-table-v2"
-STEP6_OCR_MODE = "openai_vision"  # "openai_vision", "direct_paddle", or "img2table"
+STEP6_OCR_MODE = os.getenv("NEA_OCR_MODE", "openai_vision")  # "openai_vision", "direct_paddle", or "img2table"
 OPENAI_VISION_MODEL = "gpt-4.1-mini"
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 OPENAI_IMAGE_DETAIL = "high"  # "low", "high", or "auto"; high is safer for small table text
@@ -1313,8 +1326,11 @@ print(images_df.head())
 # Inline HTML pages will not appear in images_df and will be handled later.
 
 download_manifest_rows = []
+download_images_df = images_df
+if force_rerun_urls:
+    download_images_df = images_df[images_df["source_page_url"].isin(force_rerun_urls)].copy()
 
-for page_url, g in images_df.sort_values(["source_page_url", "image_order"]).groupby("source_page_url", sort=False):
+for page_url, g in download_images_df.sort_values(["source_page_url", "image_order"]).groupby("source_page_url", sort=False):
     first = g.iloc[0]
     page_id = f"{first['publish_date']}_{safe_slug(first['title'])[:80]}"
     page_slug = safe_slug(page_id)
@@ -1342,6 +1358,15 @@ for page_url, g in images_df.sort_values(["source_page_url", "image_order"]).gro
     print("saved stitched image:", stitched_path)
 
 download_manifest_df = pd.DataFrame(download_manifest_rows)
+if force_rerun_urls and (LOGS_DIR / "download_manifest.csv").exists():
+    previous_download_manifest = pd.read_csv(LOGS_DIR / "download_manifest.csv")
+    previous_download_manifest = previous_download_manifest[
+        ~previous_download_manifest["source_page_url"].isin(force_rerun_urls)
+    ]
+    download_manifest_df = pd.concat(
+        [previous_download_manifest, download_manifest_df],
+        ignore_index=True,
+    )
 download_manifest_df.to_csv(LOGS_DIR / "download_manifest.csv", index=False, encoding="utf-8-sig")
 
 
@@ -1356,6 +1381,15 @@ else:
 
 #6) Pick one page and run OCR to raw xlsx
 PAGE_IDX = -3   # change to test pages one by one
+if force_rerun_urls:
+    PAGE_IDX = next(
+        (
+            idx
+            for idx, page_meta in enumerate(page_results)
+            if page_meta["source_page_url"] in force_rerun_urls
+        ),
+        PAGE_IDX,
+    )
 
 page_meta = page_results[PAGE_IDX]
 print(page_meta["title"])
@@ -1549,7 +1583,6 @@ print("formatted:", review_xlsx)
 #10) batch loop once one page looks good
 
 batch_items = list(enumerate(page_results))
-force_rerun_urls = set(FORCE_RERUN_URLS)
 
 if RERUN_ONLY_FAILED_FROM_RUN_SUMMARY:
     previous_run_summary_df = load_previous_run_summary()
