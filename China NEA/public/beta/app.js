@@ -132,7 +132,17 @@ const getYear = col => Number(col.slice(0, 4));
 
 const isYearEnd = col => col.endsWith("12");
 
-let columnChartPeriodMode = "annual";
+function periodDisplayLabel(col) {
+  const year = getYear(col);
+  const month = col.slice(4, 6);
+  if (month === "03") return `Q1 ${year}`;
+  if (month === "06") return `H1 ${year}`;
+  if (month === "09") return `Q3 ${year}`;
+  if (month === "12") return `year-end ${year}`;
+  return parseTimeLabel(col);
+}
+
+let columnChartPeriodMode = "quarterly";
 let columnChartContext = null;
 let scatterProfileContext = null;
 let scatterAnimationTimer = null;
@@ -179,28 +189,28 @@ function initialise(rawRows) {
   const availableTimeCols = timeCols.filter(col => parseValue(nationalTotalRow[col]) !== null);
   const annualCols = availableTimeCols.filter(isYearEnd);
 
-  const latestCol = annualCols[annualCols.length - 1];
   const latestAvailableCol = availableTimeCols[availableTimeCols.length - 1];
   const startCol = annualCols[0];
   const baselineCol = annualCols.includes("202212") ? "202212" : annualCols[annualCols.length - 4];
 
   const lookup = buildLookup(rows);
   const national = makeAreaSeries("Total", annualCols, lookup);
+  const nationalAvailable = makeAreaSeries("Total", availableTimeCols, lookup);
   const provinces = getProvinceNames(rows);
 
   const latestProvinceRows = provinces
-    .map(area => makeLatestProvinceRecord(area, latestCol, lookup))
+    .map(area => makeLatestProvinceRecord(area, latestAvailableCol, lookup))
     .filter(d => d.total !== null && d.total > 0)
     .sort((a, b) => b.total - a.total);
 
   const growthProvinceRows = provinces
-    .map(area => makeGrowthRecord(area, baselineCol, latestCol, lookup))
+    .map(area => makeGrowthRecord(area, baselineCol, latestAvailableCol, lookup))
     .filter(d => d.totalGrowth !== null)
     .sort((a, b) => b.totalGrowth - a.totalGrowth);
 
   updateStatus(rows, provinces, startCol, latestAvailableCol);
-  renderStats(national, startCol, latestCol);
-  renderBullets(national, latestProvinceRows, growthProvinceRows, baselineCol, latestCol);
+  renderStats(nationalAvailable, startCol, latestAvailableCol);
+  renderBullets(nationalAvailable, latestProvinceRows, growthProvinceRows, baselineCol, latestAvailableCol);
   renderD3ProvinceMap(lookup, availableTimeCols, latestAvailableCol);
   renderCharts(
     national,
@@ -214,9 +224,9 @@ function initialise(rawRows) {
   renderTables(
     latestProvinceRows,
     growthProvinceRows,
-    national[national.length - 1].total,
+    nationalAvailable[nationalAvailable.length - 1].total,
     baselineCol,
-    latestCol
+    latestAvailableCol
   );
 }
 
@@ -360,21 +370,43 @@ function renderStats(national, startCol, latestCol) {
 
   const addition = latest.total - prev.total;
   const multiple = latest.total / first.total;
+  const latestLabel = periodDisplayLabel(latestCol);
+  const previousLabel = periodDisplayLabel(prev.col);
 
   document.querySelector("#stat-total").textContent = fmtGW(latest.total);
   document.querySelector("#stat-total-note").textContent =
-    `${multiple.toFixed(1)}x end-${first.year} capacity`;
+    `${multiple.toFixed(1)}x end-${first.year} capacity; latest ${latestLabel}`;
 
+  const additionLabel = document.querySelector("#stat-addition-label");
+  if (additionLabel) additionLabel.textContent = `${latestLabel} solar PV additions`;
   document.querySelector("#stat-addition").textContent = `+${fmtGW(addition)}`;
+  const additionNote = document.querySelector("#stat-addition-note");
+  if (additionNote) additionNote.textContent = `Change since ${previousLabel}`;
 
   document.querySelector("#stat-distributed-share").textContent =
     fmtPct(100 * latest.distributed / latest.total);
+  const distributedShareNote = document.querySelector("#stat-distributed-share-note");
+  if (distributedShareNote) {
+    distributedShareNote.textContent = `Share of total PV capacity in ${latestLabel}`;
+  }
 
   document.querySelector("#stat-household").textContent = fmtGW(latest.household);
+  const householdNote = document.querySelector("#stat-household-note");
+  if (householdNote) householdNote.textContent = `Subset of distributed PV in ${latestLabel}`;
 }
 
 function renderBullets(national, latestProvinceRows, growthProvinceRows, baselineCol, latestCol) {
+  const latest = national[national.length - 1];
+  const prev = national[national.length - 2];
+  const latestLabel = periodDisplayLabel(latestCol);
+  const previousLabel = periodDisplayLabel(prev.col);
+  const latestAddition = latest.total - prev.total;
+  const latestDistributedAddition = latest.distributed - prev.distributed;
+  const latestUtilityAddition = latest.utility - prev.utility;
+
   const bullets = [
+    `<strong>${latestLabel} data are now included.</strong> National solar PV capacity reached ${fmtGW(latest.total)} by ${latestLabel}, up ${fmtGW(latestAddition)} from ${previousLabel}. Distributed PV accounted for ${fmtGW(latest.distributed)} of the total, after adding ${fmtGW(latestDistributedAddition)} since ${previousLabel}; utility-scale capacity added ${fmtGW(latestUtilityAddition)} over the same period.`,
+
     `<strong>China's solar PV buildout remains at record scale, even though the pace of acceleration has moderated.</strong> National additions rose from +216.9 GW in 2023 to +276.8 GW in 2024 and +314.2 GW in 2025, but the year-on-year increase in additions slowed from +130.8 GW to +59.9 GW and then +37.5 GW. Even so, the scale is extraordinary: China added more PV in 2025 alone than the country's entire installed solar fleet at end-2020 (253.2 GW).`,
 
     `<strong>Distributed PV has become a central growth driver.</strong> Distributed capacity rose from 10.3 GW in 2016 to 533.0 GW in 2025, lifting its share of national PV from 13.3% to 44.4%. In 2025, distributed additions slightly exceeded utility-scale additions: +158.2 GW versus +156.0 GW.`,
@@ -1134,15 +1166,16 @@ function renderScatter(data, col, previousCol, animate = true) {
 }
 
 function renderTables(latestProvinceRows, growthProvinceRows, nationalLatestTotal, baselineCol, latestCol) {
+  const latestLabel = periodDisplayLabel(latestCol);
   const latestNote = document.querySelector("#table-latest-note");
   if (latestNote) {
-    latestNote.textContent = `Top provinces at year-end ${getYear(latestCol)}.`;
+    latestNote.textContent = `Top provinces at ${latestLabel}.`;
   }
 
   const growthNote = document.querySelector("#table-growth-note");
   if (growthNote) {
     growthNote.textContent =
-      `Capacity change from ${parseTimeLabel(baselineCol)} to year-end ${getYear(latestCol)}.`;
+      `Capacity change from ${parseTimeLabel(baselineCol)} to ${latestLabel}.`;
   }
 
   const latestRows = latestProvinceRows.slice(0, 15).map(d => ({

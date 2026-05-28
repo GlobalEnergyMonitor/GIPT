@@ -45,21 +45,21 @@
       </article>
 
       <article class="stat-card">
-        <p class="stat-label">2025 solar PV additions</p>
+        <p id="stat-addition-label" class="stat-label">Latest solar PV additions</p>
         <p id="stat-addition" class="stat-value">-</p>
-        <p class="stat-note">Largest annual increase</p>
+        <p id="stat-addition-note" class="stat-note">-</p>
       </article>
 
       <article class="stat-card">
         <p class="stat-label">Distributed solar PV share</p>
         <p id="stat-distributed-share" class="stat-value">-</p>
-        <p class="stat-note">Share of total PV capacity in 2025</p>
+        <p id="stat-distributed-share-note" class="stat-note">-</p>
       </article>
 
       <article class="stat-card">
         <p class="stat-label">Household PV</p>
         <p id="stat-household" class="stat-value">-</p>
-        <p class="stat-note">Subset of distributed PV</p>
+        <p id="stat-household-note" class="stat-note">-</p>
       </article>
     </section>
 
@@ -114,8 +114,8 @@
       </div>
 
       <div class="chart-period-toggle" role="group" aria-label="Column chart period frequency">
-        <button type="button" class="is-active" data-chart-period="annual">Annual</button>
-        <button type="button" data-chart-period="quarterly">Quarterly</button>
+        <button type="button" data-chart-period="annual">Annual</button>
+        <button type="button" class="is-active" data-chart-period="quarterly">Quarterly</button>
       </div>
 
       <div id="chart-national-stack" class="chart"></div>
@@ -126,13 +126,13 @@
         <div class="section-heading compact chart-heading">
           <div>
             <h2>Capacity additions</h2>
-            <p>Year-on-year change in capacity, in gigwatts (GW).</p>
+            <p>Change from the previous selected period, in gigawatts (GW).</p>
           </div>
 
           <div class="chart-control-stack">
             <div class="chart-period-toggle compact-toggle" role="group" aria-label="Column chart period frequency">
-              <button type="button" class="is-active" data-chart-period="annual">Annual</button>
-              <button type="button" data-chart-period="quarterly">Quarterly</button>
+              <button type="button" data-chart-period="annual">Annual</button>
+              <button type="button" class="is-active" data-chart-period="quarterly">Quarterly</button>
             </div>
 
             <label class="chart-select-label compact-select" for="area-additions-select">
