@@ -69,11 +69,11 @@ def build(data):
             for tab, status in TAB_STATUS.items()}
 
 
-def push(frames, gc=None):
-    """Write the built frames to the Google Sheet."""
-    gc = gc or sheets.client()
-    spreadsheet = gc.open_by_key(SHEET_KEY)
-    for tab, df in frames.items():
+def push(frames, gc=None, tabs=None):
+    """Write the built frames to the Google Sheet (all tabs, or just ``tabs``)."""
+    spreadsheet = sheets.open_sheet(SHEET_KEY, gc=gc)
+    selected = frames if tabs is None else {t: frames[t] for t in tabs}
+    for tab, df in selected.items():
         sheets.write_frame(spreadsheet, tab, df, ANCHOR)
         print(f"  wrote {tab} ({df.shape[0]}x{df.shape[1]}) at {ANCHOR}")
 

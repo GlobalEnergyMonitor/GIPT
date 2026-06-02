@@ -15,13 +15,22 @@ def client(creds_file=None):
     return pygsheets.authorize(service_file=creds_file or config.CREDS_FILE)
 
 
-def write_frame(spreadsheet, tab, df, anchor, extend=False):
-    """Write ``df`` (values only) into worksheet ``tab`` starting at ``anchor``.
+def open_sheet(key, gc=None):
+    """Open a spreadsheet by key, authorising first if no client is given."""
+    gc = gc or client()
+    return gc.open_by_key(key)
 
-    Matches the original notebook's call — no header, no index, no auto-resize —
-    so the values drop straight onto the sheet's existing template.
+
+def write_frame(spreadsheet, tab, df, anchor,
+                copy_head=False, copy_index=False, extend=False, fit=False):
+    """Write ``df`` into worksheet ``tab`` starting at ``anchor``.
+
+    All of pygsheets' ``set_dataframe`` flags are exposed so a single tab can be
+    written with full control, exactly like the original notebook's per-tab
+    calls. Defaults match the common case: values only (no header, no index),
+    onto the sheet's existing template.
     """
     worksheet = spreadsheet.worksheet("title", tab)
-    worksheet.set_dataframe(df, anchor, copy_index=False, copy_head=False,
-                            extend=extend, fit=False)
+    worksheet.set_dataframe(df, anchor, copy_head=copy_head, copy_index=copy_index,
+                            extend=extend, fit=fit)
     return worksheet
