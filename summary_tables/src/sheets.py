@@ -21,6 +21,11 @@ def open_sheet(key, gc=None):
     return gc.open_by_key(key)
 
 
+def url(key):
+    """The edit URL for a spreadsheet key (handy for run summaries / banners)."""
+    return f"https://docs.google.com/spreadsheets/d/{key}/edit"
+
+
 def write_frame(spreadsheet, tab, df, anchor,
                 copy_head=False, copy_index=False, extend=False, fit=False):
     """Write ``df`` into worksheet ``tab`` starting at ``anchor``.

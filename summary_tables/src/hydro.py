@@ -62,3 +62,24 @@ def split_hydro_by_region(df):
 
     out = pd.concat([mono_part, partner1, partner2])
     return out[out["Type"] == "hydropower"]
+
+
+def split_hydro_by_country(df):
+    """Hydropower rows reshaped for country aggregation (cell 8 logic).
+
+    Mono projects keep their Country/area, valued at the country-1 hydro
+    capacity; bi-national projects become two rows, one under each partner
+    country with that partner's capacity. Returns hydropower-only rows with
+    Country/area, Capacity (MW).
+    """
+    mono = df[df[_C2].isnull()]
+    binational = df[df[_C2].notnull()]
+
+    mono_part = mono[["Country/area", "Type", _C1_CAP]].rename(columns={_C1_CAP: "Capacity (MW)"})
+    partner1 = binational[[_C2, _C2_CAP, "Type"]].rename(
+        columns={_C2: "Country/area", _C2_CAP: "Capacity (MW)"})
+    partner2 = binational[[_C1, _C1_CAP, "Type"]].rename(
+        columns={_C1: "Country/area", _C1_CAP: "Capacity (MW)"})
+
+    out = pd.concat([mono_part, partner1, partner2])
+    return out[out["Type"] == "hydropower"]

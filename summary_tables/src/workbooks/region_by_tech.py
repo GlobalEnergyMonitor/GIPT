@@ -14,6 +14,7 @@ from ..tables import ensure_dimensions
 
 SHEET_KEY = config.SPREADSHEET_KEYS["region_by_tech"]
 ANCHOR = "B6"
+TITLE = "Power capacity by region and technology, grouped by status"
 
 # Worksheet tab -> the project status it shows.
 TAB_STATUS = {
@@ -81,7 +82,7 @@ def push(frames, gc=None, tabs=None):
 def run(data, write=False, gc=None):
     """Build, print a per-tab summary, optionally push, and return the frames."""
     frames = build(data)
-    print(f"region_by_tech -> sheet {SHEET_KEY}")
+    print(f"{TITLE}\n{sheets.url(SHEET_KEY)}")
     present = [r for r in config.WORLD_REGIONS if r in next(iter(frames.values())).index]
     for tab, df in frames.items():
         world_total = df.loc[present].to_numpy().sum()
