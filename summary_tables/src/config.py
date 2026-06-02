@@ -51,6 +51,10 @@ REGIONS_AND_SUBREGIONS = [
     "Polynesia",
 ]
 
+# The five top-level regions (their subregions sum to the same total). Handy for
+# quick reconciliation in run summaries.
+WORLD_REGIONS = ["Africa", "Americas", "Asia", "Europe", "Oceania"]
+
 # Technology types. TYPES includes distributed solar (used by the region/country
 # x technology tables); TECHS excludes it (used everywhere else).
 TYPES = ["coal", "oil/gas", "utility-scale solar", "solar dist", "wind",
